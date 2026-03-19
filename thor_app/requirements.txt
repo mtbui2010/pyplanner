@@ -1,0 +1,21 @@
+# thor_app/requirements.txt
+#
+# ── Install order ─────────────────────────────────────────────────────
+# 1. Install pyplanner first (from the sibling folder):
+#       pip install -e ../pyplanner
+#
+# 2. Then install app dependencies:
+#       pip install -r requirements.txt
+#
+# Windows / conda note:
+#   If "pip install -e" fails, app.py auto-resolves the path at runtime.
+# ──────────────────────────────────────────────────────────────────────
+
+streamlit>=1.35
+ai2thor>=5.0
+pyzmq>=25
+pillow>=10
+opencv-python>=4.9
+ollama>=0.2
+requests>=2.31
+pandas>=2.0

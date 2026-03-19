@@ -1,0 +1,1968 @@
+{
+  "version": "1.0",
+  "samples": [
+    {
+      "task_id": "K01",
+      "task_desc": "Make a cup of coffee using the coffee machine",
+      "room": "kitchen",
+      "scene": "FloorPlan1",
+      "obs": "Kitchen. Counter top visible. Coffee machine on counter. Mug on shelf.",
+      "visible_objects": [
+        "coffee_machine",
+        "mug",
+        "counter_top",
+        "shelf",
+        "fridge"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "mug",
+          "target": "",
+          "reason": "Move to the mug"
+        },
+        {
+          "action": "Grab",
+          "object": "mug",
+          "target": "",
+          "reason": "Pick up the mug"
+        },
+        {
+          "action": "Navigate",
+          "object": "coffee_machine",
+          "target": "",
+          "reason": "Move to the coffee machine"
+        },
+        {
+          "action": "Place",
+          "object": "mug",
+          "target": "coffee_machine",
+          "reason": "Position mug under dispenser"
+        },
+        {
+          "action": "TurnOn",
+          "object": "coffee_machine",
+          "target": "",
+          "reason": "Start brewing"
+        }
+      ],
+      "expected_objects": [
+        "mug",
+        "coffee_machine"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "K02",
+      "task_desc": "Turn on the stove burner",
+      "room": "kitchen",
+      "scene": "FloorPlan2",
+      "obs": "Kitchen with stove top. Burner is off. Pot nearby.",
+      "visible_objects": [
+        "stove_burner",
+        "pot",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "stove_burner",
+          "target": "",
+          "reason": "Move to the stove"
+        },
+        {
+          "action": "TurnOn",
+          "object": "stove_burner",
+          "target": "",
+          "reason": "Switch burner on"
+        }
+      ],
+      "expected_objects": [
+        "stove_burner"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "K03",
+      "task_desc": "Open the fridge and retrieve a tomato",
+      "room": "kitchen",
+      "scene": "FloorPlan1",
+      "obs": "Kitchen. Fridge on the wall. Tomato visible inside fridge.",
+      "visible_objects": [
+        "fridge",
+        "counter_top",
+        "tomato"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "fridge",
+          "target": "",
+          "reason": "Move to the fridge"
+        },
+        {
+          "action": "Open",
+          "object": "fridge",
+          "target": "",
+          "reason": "Open fridge door"
+        },
+        {
+          "action": "Grab",
+          "object": "tomato",
+          "target": "",
+          "reason": "Pick up the tomato"
+        },
+        {
+          "action": "Close",
+          "object": "fridge",
+          "target": "",
+          "reason": "Close fridge door"
+        }
+      ],
+      "expected_objects": [
+        "fridge",
+        "tomato"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "K04",
+      "task_desc": "Boil water in a pot on the stove",
+      "room": "kitchen",
+      "scene": "FloorPlan2",
+      "obs": "Kitchen. Stove visible. Pot on counter. Sink accessible.",
+      "visible_objects": [
+        "pot",
+        "stove_burner",
+        "sink",
+        "faucet",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "pot",
+          "target": "",
+          "reason": "Move to the pot"
+        },
+        {
+          "action": "Grab",
+          "object": "pot",
+          "target": "",
+          "reason": "Pick up the pot"
+        },
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to the sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Fill pot with water"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Stop water"
+        },
+        {
+          "action": "Navigate",
+          "object": "stove_burner",
+          "target": "",
+          "reason": "Move to the stove"
+        },
+        {
+          "action": "Place",
+          "object": "pot",
+          "target": "stove_burner",
+          "reason": "Put pot on burner"
+        },
+        {
+          "action": "TurnOn",
+          "object": "stove_burner",
+          "target": "",
+          "reason": "Heat the water"
+        }
+      ],
+      "expected_objects": [
+        "pot",
+        "faucet",
+        "stove_burner"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {
+        "at_step": 3,
+        "failure_reason": "Faucet not reachable from current position"
+      }
+    },
+    {
+      "task_id": "K05",
+      "task_desc": "Cook an egg — place it in a pan on the stove",
+      "room": "kitchen",
+      "scene": "FloorPlan3",
+      "obs": "Kitchen. Stove with pan. Egg on counter.",
+      "visible_objects": [
+        "egg",
+        "pan",
+        "stove_burner",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "egg",
+          "target": "",
+          "reason": "Move to the egg"
+        },
+        {
+          "action": "Grab",
+          "object": "egg",
+          "target": "",
+          "reason": "Pick up the egg"
+        },
+        {
+          "action": "Navigate",
+          "object": "pan",
+          "target": "",
+          "reason": "Move to the pan"
+        },
+        {
+          "action": "Place",
+          "object": "egg",
+          "target": "pan",
+          "reason": "Place egg in pan"
+        },
+        {
+          "action": "Navigate",
+          "object": "stove_burner",
+          "target": "",
+          "reason": "Go to stove"
+        },
+        {
+          "action": "TurnOn",
+          "object": "stove_burner",
+          "target": "",
+          "reason": "Start cooking"
+        }
+      ],
+      "expected_objects": [
+        "egg",
+        "pan",
+        "stove_burner"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "K06",
+      "task_desc": "Wash an apple at the sink",
+      "room": "kitchen",
+      "scene": "FloorPlan1",
+      "obs": "Kitchen. Apple on counter. Sink with faucet accessible.",
+      "visible_objects": [
+        "apple",
+        "sink",
+        "faucet",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "apple",
+          "target": "",
+          "reason": "Move to the apple"
+        },
+        {
+          "action": "Grab",
+          "object": "apple",
+          "target": "",
+          "reason": "Pick up the apple"
+        },
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to the sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn on water"
+        },
+        {
+          "action": "Wash",
+          "object": "apple",
+          "target": "",
+          "reason": "Wash the apple under water"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn off water"
+        }
+      ],
+      "expected_objects": [
+        "apple",
+        "sink",
+        "faucet"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "K07",
+      "task_desc": "Heat food in the microwave",
+      "room": "kitchen",
+      "scene": "FloorPlan1",
+      "obs": "Kitchen. Microwave on counter. Plate with food on table.",
+      "visible_objects": [
+        "microwave",
+        "plate",
+        "food",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "plate",
+          "target": "",
+          "reason": "Move to the plate"
+        },
+        {
+          "action": "Grab",
+          "object": "plate",
+          "target": "",
+          "reason": "Pick up the plate"
+        },
+        {
+          "action": "Navigate",
+          "object": "microwave",
+          "target": "",
+          "reason": "Move to the microwave"
+        },
+        {
+          "action": "Open",
+          "object": "microwave",
+          "target": "",
+          "reason": "Open microwave door"
+        },
+        {
+          "action": "Place",
+          "object": "plate",
+          "target": "microwave",
+          "reason": "Put plate inside"
+        },
+        {
+          "action": "Close",
+          "object": "microwave",
+          "target": "",
+          "reason": "Close the door"
+        },
+        {
+          "action": "TurnOn",
+          "object": "microwave",
+          "target": "",
+          "reason": "Start heating"
+        }
+      ],
+      "expected_objects": [
+        "plate",
+        "microwave"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {
+        "at_step": 2,
+        "failure_reason": "Microwave door is already open"
+      }
+    },
+    {
+      "task_id": "K08",
+      "task_desc": "Set up the dining table with plates and cups",
+      "room": "kitchen",
+      "scene": "FloorPlan4",
+      "obs": "Kitchen with dining table. Plates in cabinet. Cups on shelf.",
+      "visible_objects": [
+        "plate",
+        "cup",
+        "cabinet",
+        "shelf",
+        "dining_table"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Go to the cabinet"
+        },
+        {
+          "action": "Open",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Open cabinet"
+        },
+        {
+          "action": "Grab",
+          "object": "plate",
+          "target": "",
+          "reason": "Take a plate"
+        },
+        {
+          "action": "Navigate",
+          "object": "dining_table",
+          "target": "",
+          "reason": "Go to the table"
+        },
+        {
+          "action": "Place",
+          "object": "plate",
+          "target": "dining_table",
+          "reason": "Set plate on table"
+        },
+        {
+          "action": "Navigate",
+          "object": "shelf",
+          "target": "",
+          "reason": "Go to the shelf"
+        },
+        {
+          "action": "Grab",
+          "object": "cup",
+          "target": "",
+          "reason": "Take a cup"
+        },
+        {
+          "action": "Navigate",
+          "object": "dining_table",
+          "target": "",
+          "reason": "Return to the table"
+        },
+        {
+          "action": "Place",
+          "object": "cup",
+          "target": "dining_table",
+          "reason": "Set cup on table"
+        },
+        {
+          "action": "Navigate",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Close cabinet"
+        },
+        {
+          "action": "Close",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Close the cabinet"
+        }
+      ],
+      "expected_objects": [
+        "plate",
+        "cup",
+        "dining_table"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {
+        "at_step": 1,
+        "failure_reason": "Cabinet is locked"
+      }
+    },
+    {
+      "task_id": "K09",
+      "task_desc": "Prepare a coffee and place it on the dining table",
+      "room": "kitchen",
+      "scene": "FloorPlan1",
+      "obs": "Kitchen. Coffee machine, mug, dining table all visible.",
+      "visible_objects": [
+        "coffee_machine",
+        "mug",
+        "dining_table",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "mug",
+          "target": "",
+          "reason": "Go to mug"
+        },
+        {
+          "action": "Grab",
+          "object": "mug",
+          "target": "",
+          "reason": "Pick up mug"
+        },
+        {
+          "action": "Navigate",
+          "object": "coffee_machine",
+          "target": "",
+          "reason": "Go to coffee machine"
+        },
+        {
+          "action": "Place",
+          "object": "mug",
+          "target": "coffee_machine",
+          "reason": "Position mug"
+        },
+        {
+          "action": "TurnOn",
+          "object": "coffee_machine",
+          "target": "",
+          "reason": "Brew coffee"
+        },
+        {
+          "action": "Grab",
+          "object": "mug",
+          "target": "",
+          "reason": "Pick up filled mug"
+        },
+        {
+          "action": "Navigate",
+          "object": "dining_table",
+          "target": "",
+          "reason": "Go to dining table"
+        },
+        {
+          "action": "Serve",
+          "object": "mug",
+          "target": "dining_table",
+          "reason": "Place coffee on table"
+        }
+      ],
+      "expected_objects": [
+        "mug",
+        "coffee_machine",
+        "dining_table"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "L01",
+      "task_desc": "Turn on the television",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room. TV mounted on wall. Remote on coffee table.",
+      "visible_objects": [
+        "television",
+        "remote_control",
+        "sofa",
+        "coffee_table"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "television",
+          "target": "",
+          "reason": "Move to the TV"
+        },
+        {
+          "action": "TurnOn",
+          "object": "television",
+          "target": "",
+          "reason": "Switch TV on"
+        }
+      ],
+      "expected_objects": [
+        "television"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "L02",
+      "task_desc": "Sit on the sofa",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room with sofa. Pillows on the sofa.",
+      "visible_objects": [
+        "sofa",
+        "pillow",
+        "coffee_table"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "sofa",
+          "target": "",
+          "reason": "Move to the sofa"
+        },
+        {
+          "action": "Sit",
+          "object": "sofa",
+          "target": "",
+          "reason": "Sit down"
+        }
+      ],
+      "expected_objects": [
+        "sofa"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "L03",
+      "task_desc": "Pick up a book from the bookshelf",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room. Bookshelf with books on the wall.",
+      "visible_objects": [
+        "bookshelf",
+        "book",
+        "sofa",
+        "lamp"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "bookshelf",
+          "target": "",
+          "reason": "Go to bookshelf"
+        },
+        {
+          "action": "Grab",
+          "object": "book",
+          "target": "",
+          "reason": "Pick up a book"
+        }
+      ],
+      "expected_objects": [
+        "bookshelf",
+        "book"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "L04",
+      "task_desc": "Watch TV — turn it on and sit on the sofa",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room. TV off. Sofa in center. Remote on table.",
+      "visible_objects": [
+        "television",
+        "remote_control",
+        "sofa",
+        "coffee_table"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "television",
+          "target": "",
+          "reason": "Move to TV"
+        },
+        {
+          "action": "TurnOn",
+          "object": "television",
+          "target": "",
+          "reason": "Turn TV on"
+        },
+        {
+          "action": "Navigate",
+          "object": "sofa",
+          "target": "",
+          "reason": "Move to sofa"
+        },
+        {
+          "action": "Sit",
+          "object": "sofa",
+          "target": "",
+          "reason": "Sit down to watch"
+        }
+      ],
+      "expected_objects": [
+        "television",
+        "sofa"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "L05",
+      "task_desc": "Read a book — pick one up and sit on the sofa",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room. Bookshelf on wall. Sofa visible.",
+      "visible_objects": [
+        "book",
+        "bookshelf",
+        "sofa",
+        "lamp"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "bookshelf",
+          "target": "",
+          "reason": "Go to bookshelf"
+        },
+        {
+          "action": "Grab",
+          "object": "book",
+          "target": "",
+          "reason": "Pick up a book"
+        },
+        {
+          "action": "Navigate",
+          "object": "sofa",
+          "target": "",
+          "reason": "Go to the sofa"
+        },
+        {
+          "action": "Sit",
+          "object": "sofa",
+          "target": "",
+          "reason": "Sit to read"
+        }
+      ],
+      "expected_objects": [
+        "book",
+        "sofa"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {
+        "at_step": 1,
+        "failure_reason": "Book out of reach from current position"
+      }
+    },
+    {
+      "task_id": "L06",
+      "task_desc": "Turn on the lamp and sit on the sofa",
+      "room": "living_room",
+      "scene": "FloorPlan202",
+      "obs": "Living room. Floor lamp in corner. Sofa in center.",
+      "visible_objects": [
+        "lamp",
+        "sofa",
+        "coffee_table",
+        "television"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "lamp",
+          "target": "",
+          "reason": "Move to the lamp"
+        },
+        {
+          "action": "TurnOn",
+          "object": "lamp",
+          "target": "",
+          "reason": "Turn lamp on"
+        },
+        {
+          "action": "Navigate",
+          "object": "sofa",
+          "target": "",
+          "reason": "Go to the sofa"
+        },
+        {
+          "action": "Sit",
+          "object": "sofa",
+          "target": "",
+          "reason": "Sit down"
+        }
+      ],
+      "expected_objects": [
+        "lamp",
+        "sofa"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "L07",
+      "task_desc": "Clean the living room — pick up clutter and place items away",
+      "room": "living_room",
+      "scene": "FloorPlan202",
+      "obs": "Messy living room. Book on floor. Remote on sofa. Cup on table.",
+      "visible_objects": [
+        "book",
+        "remote_control",
+        "cup",
+        "bookshelf",
+        "coffee_table",
+        "sofa"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "book",
+          "target": "",
+          "reason": "Go to book on floor"
+        },
+        {
+          "action": "Grab",
+          "object": "book",
+          "target": "",
+          "reason": "Pick up book"
+        },
+        {
+          "action": "Navigate",
+          "object": "bookshelf",
+          "target": "",
+          "reason": "Go to bookshelf"
+        },
+        {
+          "action": "Place",
+          "object": "book",
+          "target": "bookshelf",
+          "reason": "Put book away"
+        },
+        {
+          "action": "Navigate",
+          "object": "remote_control",
+          "target": "",
+          "reason": "Go to remote on sofa"
+        },
+        {
+          "action": "Grab",
+          "object": "remote_control",
+          "target": "",
+          "reason": "Pick up remote"
+        },
+        {
+          "action": "Navigate",
+          "object": "coffee_table",
+          "target": "",
+          "reason": "Go to coffee table"
+        },
+        {
+          "action": "Place",
+          "object": "remote_control",
+          "target": "coffee_table",
+          "reason": "Place remote on table"
+        }
+      ],
+      "expected_objects": [
+        "book",
+        "remote_control",
+        "bookshelf"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {
+        "at_step": 3,
+        "failure_reason": "Bookshelf is full, cannot place book"
+      }
+    },
+    {
+      "task_id": "L08",
+      "task_desc": "Set up for movie night: turn on TV, dim lamp, sit on sofa",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room. TV off. Lamp on. Sofa in center.",
+      "visible_objects": [
+        "television",
+        "lamp",
+        "sofa",
+        "remote_control"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "television",
+          "target": "",
+          "reason": "Go to TV"
+        },
+        {
+          "action": "TurnOn",
+          "object": "television",
+          "target": "",
+          "reason": "Turn TV on"
+        },
+        {
+          "action": "Navigate",
+          "object": "lamp",
+          "target": "",
+          "reason": "Go to lamp"
+        },
+        {
+          "action": "TurnOff",
+          "object": "lamp",
+          "target": "",
+          "reason": "Dim the room"
+        },
+        {
+          "action": "Navigate",
+          "object": "sofa",
+          "target": "",
+          "reason": "Go to sofa"
+        },
+        {
+          "action": "Sit",
+          "object": "sofa",
+          "target": "",
+          "reason": "Sit down to watch"
+        }
+      ],
+      "expected_objects": [
+        "television",
+        "lamp",
+        "sofa"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B01",
+      "task_desc": "Turn off the bedroom light",
+      "room": "bedroom",
+      "scene": "FloorPlan301",
+      "obs": "Bedroom. Ceiling light on. Bed in center.",
+      "visible_objects": [
+        "light_switch",
+        "bed",
+        "dresser"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Go to light switch"
+        },
+        {
+          "action": "TurnOff",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Turn off the light"
+        }
+      ],
+      "expected_objects": [
+        "light_switch"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B02",
+      "task_desc": "Lie down on the bed",
+      "room": "bedroom",
+      "scene": "FloorPlan301",
+      "obs": "Bedroom. Bed with pillows. Dresser on the side.",
+      "visible_objects": [
+        "bed",
+        "pillow",
+        "dresser",
+        "alarm_clock"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "bed",
+          "target": "",
+          "reason": "Move to the bed"
+        },
+        {
+          "action": "LieOn",
+          "object": "bed",
+          "target": "",
+          "reason": "Lie down on the bed"
+        }
+      ],
+      "expected_objects": [
+        "bed"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B03",
+      "task_desc": "Pick up the alarm clock",
+      "room": "bedroom",
+      "scene": "FloorPlan301",
+      "obs": "Bedroom. Alarm clock on nightstand.",
+      "visible_objects": [
+        "alarm_clock",
+        "bed",
+        "nightstand"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "alarm_clock",
+          "target": "",
+          "reason": "Move to alarm clock"
+        },
+        {
+          "action": "Grab",
+          "object": "alarm_clock",
+          "target": "",
+          "reason": "Pick it up"
+        }
+      ],
+      "expected_objects": [
+        "alarm_clock"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B04",
+      "task_desc": "Go to sleep — turn off light and lie on the bed",
+      "room": "bedroom",
+      "scene": "FloorPlan301",
+      "obs": "Bedroom at night. Light is on. Bed unmade.",
+      "visible_objects": [
+        "light_switch",
+        "bed",
+        "pillow",
+        "alarm_clock"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Go to light switch"
+        },
+        {
+          "action": "TurnOff",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Turn light off"
+        },
+        {
+          "action": "Navigate",
+          "object": "bed",
+          "target": "",
+          "reason": "Go to the bed"
+        },
+        {
+          "action": "LieOn",
+          "object": "bed",
+          "target": "",
+          "reason": "Lie down to sleep"
+        }
+      ],
+      "expected_objects": [
+        "light_switch",
+        "bed"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B05",
+      "task_desc": "Set the alarm clock on the nightstand",
+      "room": "bedroom",
+      "scene": "FloorPlan301",
+      "obs": "Bedroom. Alarm clock on bed. Nightstand next to bed.",
+      "visible_objects": [
+        "alarm_clock",
+        "bed",
+        "nightstand"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "alarm_clock",
+          "target": "",
+          "reason": "Go to alarm clock"
+        },
+        {
+          "action": "Grab",
+          "object": "alarm_clock",
+          "target": "",
+          "reason": "Pick up alarm clock"
+        },
+        {
+          "action": "Navigate",
+          "object": "nightstand",
+          "target": "",
+          "reason": "Go to nightstand"
+        },
+        {
+          "action": "Place",
+          "object": "alarm_clock",
+          "target": "nightstand",
+          "reason": "Place on nightstand"
+        }
+      ],
+      "expected_objects": [
+        "alarm_clock",
+        "nightstand"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {
+        "at_step": 2,
+        "failure_reason": "Nightstand surface is occupied"
+      }
+    },
+    {
+      "task_id": "B06",
+      "task_desc": "Get clothes from the dresser",
+      "room": "bedroom",
+      "scene": "FloorPlan302",
+      "obs": "Bedroom. Dresser with drawers. Clothes inside.",
+      "visible_objects": [
+        "dresser",
+        "clothes",
+        "bed",
+        "mirror"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "dresser",
+          "target": "",
+          "reason": "Go to dresser"
+        },
+        {
+          "action": "Open",
+          "object": "dresser",
+          "target": "",
+          "reason": "Open drawer"
+        },
+        {
+          "action": "Grab",
+          "object": "clothes",
+          "target": "",
+          "reason": "Take clothes out"
+        },
+        {
+          "action": "Close",
+          "object": "dresser",
+          "target": "",
+          "reason": "Close drawer"
+        }
+      ],
+      "expected_objects": [
+        "dresser",
+        "clothes"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B07",
+      "task_desc": "Prepare for bed: set alarm, turn off light, lie down",
+      "room": "bedroom",
+      "scene": "FloorPlan301",
+      "obs": "Bedroom. Light on. Alarm clock on shelf. Bed visible.",
+      "visible_objects": [
+        "alarm_clock",
+        "light_switch",
+        "bed",
+        "nightstand",
+        "shelf"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "alarm_clock",
+          "target": "",
+          "reason": "Go to alarm clock"
+        },
+        {
+          "action": "Grab",
+          "object": "alarm_clock",
+          "target": "",
+          "reason": "Pick up alarm clock"
+        },
+        {
+          "action": "Navigate",
+          "object": "nightstand",
+          "target": "",
+          "reason": "Go to nightstand"
+        },
+        {
+          "action": "Place",
+          "object": "alarm_clock",
+          "target": "nightstand",
+          "reason": "Set clock down"
+        },
+        {
+          "action": "Navigate",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Go to light switch"
+        },
+        {
+          "action": "TurnOff",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Turn off light"
+        },
+        {
+          "action": "Navigate",
+          "object": "bed",
+          "target": "",
+          "reason": "Go to bed"
+        },
+        {
+          "action": "LieOn",
+          "object": "bed",
+          "target": "",
+          "reason": "Lie down"
+        }
+      ],
+      "expected_objects": [
+        "alarm_clock",
+        "light_switch",
+        "bed"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "B08",
+      "task_desc": "Make the bed and place the pillow neatly",
+      "room": "bedroom",
+      "scene": "FloorPlan302",
+      "obs": "Bedroom. Pillow on the floor. Bed unmade.",
+      "visible_objects": [
+        "pillow",
+        "bed",
+        "dresser"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "pillow",
+          "target": "",
+          "reason": "Go to pillow on floor"
+        },
+        {
+          "action": "Grab",
+          "object": "pillow",
+          "target": "",
+          "reason": "Pick up pillow"
+        },
+        {
+          "action": "Navigate",
+          "object": "bed",
+          "target": "",
+          "reason": "Go to the bed"
+        },
+        {
+          "action": "Place",
+          "object": "pillow",
+          "target": "bed",
+          "reason": "Place pillow on bed"
+        }
+      ],
+      "expected_objects": [
+        "pillow",
+        "bed"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {
+        "at_step": 0,
+        "failure_reason": "Pillow is under the bed, not reachable"
+      }
+    },
+    {
+      "task_id": "A01",
+      "task_desc": "Turn on the shower",
+      "room": "bathroom",
+      "scene": "FloorPlan402",
+      "obs": "Bathroom. Shower stall. Faucet handle visible.",
+      "visible_objects": [
+        "shower_faucet",
+        "toilet",
+        "sink",
+        "towel"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "shower_faucet",
+          "target": "",
+          "reason": "Go to shower"
+        },
+        {
+          "action": "TurnOn",
+          "object": "shower_faucet",
+          "target": "",
+          "reason": "Turn shower on"
+        }
+      ],
+      "expected_objects": [
+        "shower_faucet"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "A02",
+      "task_desc": "Pick up the soap from the sink",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Sink with soap dispenser. Mirror above.",
+      "visible_objects": [
+        "soap",
+        "sink",
+        "mirror",
+        "towel"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to the sink"
+        },
+        {
+          "action": "Grab",
+          "object": "soap",
+          "target": "",
+          "reason": "Pick up soap"
+        }
+      ],
+      "expected_objects": [
+        "soap",
+        "sink"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "A03",
+      "task_desc": "Turn on the bathroom light",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Light switch next to door. Light is off.",
+      "visible_objects": [
+        "light_switch",
+        "sink",
+        "toilet",
+        "towel_rack"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Go to switch"
+        },
+        {
+          "action": "TurnOn",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Turn light on"
+        }
+      ],
+      "expected_objects": [
+        "light_switch"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "A04",
+      "task_desc": "Wash hands with soap at the sink",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Sink with faucet. Soap on counter.",
+      "visible_objects": [
+        "sink",
+        "faucet",
+        "soap",
+        "towel"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn on water"
+        },
+        {
+          "action": "Grab",
+          "object": "soap",
+          "target": "",
+          "reason": "Pick up soap"
+        },
+        {
+          "action": "Wash",
+          "object": "soap",
+          "target": "",
+          "reason": "Wash hands with soap"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn off water"
+        }
+      ],
+      "expected_objects": [
+        "sink",
+        "faucet",
+        "soap"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {
+        "at_step": 1,
+        "failure_reason": "Faucet handle is stuck"
+      }
+    },
+    {
+      "task_id": "A05",
+      "task_desc": "Brush teeth — toothbrush, use sink, brush",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Toothbrush on counter. Sink accessible.",
+      "visible_objects": [
+        "toothbrush",
+        "toothpaste",
+        "sink",
+        "faucet",
+        "mirror"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "toothbrush",
+          "target": "",
+          "reason": "Go to toothbrush"
+        },
+        {
+          "action": "Grab",
+          "object": "toothbrush",
+          "target": "",
+          "reason": "Pick up toothbrush"
+        },
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn on water"
+        },
+        {
+          "action": "Wash",
+          "object": "toothbrush",
+          "target": "",
+          "reason": "Wet the toothbrush"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn off water"
+        }
+      ],
+      "expected_objects": [
+        "toothbrush",
+        "sink",
+        "faucet"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "A06",
+      "task_desc": "Take a towel and hang it on the rack",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Towel on the floor. Towel rack on wall.",
+      "visible_objects": [
+        "towel",
+        "towel_rack",
+        "sink",
+        "toilet"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "towel",
+          "target": "",
+          "reason": "Go to towel"
+        },
+        {
+          "action": "Grab",
+          "object": "towel",
+          "target": "",
+          "reason": "Pick up towel"
+        },
+        {
+          "action": "Navigate",
+          "object": "towel_rack",
+          "target": "",
+          "reason": "Go to towel rack"
+        },
+        {
+          "action": "Place",
+          "object": "towel",
+          "target": "towel_rack",
+          "reason": "Hang towel on rack"
+        }
+      ],
+      "expected_objects": [
+        "towel",
+        "towel_rack"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "A07",
+      "task_desc": "Full morning routine: light on, wash hands, brush teeth",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Light off. Toothbrush and soap on counter. Sink ready.",
+      "visible_objects": [
+        "light_switch",
+        "toothbrush",
+        "soap",
+        "sink",
+        "faucet",
+        "mirror",
+        "towel"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Go to switch"
+        },
+        {
+          "action": "TurnOn",
+          "object": "light_switch",
+          "target": "",
+          "reason": "Turn on light"
+        },
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Start water for handwashing"
+        },
+        {
+          "action": "Grab",
+          "object": "soap",
+          "target": "",
+          "reason": "Pick up soap"
+        },
+        {
+          "action": "Wash",
+          "object": "soap",
+          "target": "",
+          "reason": "Wash hands"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Stop water"
+        },
+        {
+          "action": "Navigate",
+          "object": "toothbrush",
+          "target": "",
+          "reason": "Go to toothbrush"
+        },
+        {
+          "action": "Grab",
+          "object": "toothbrush",
+          "target": "",
+          "reason": "Pick up toothbrush"
+        },
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Return to sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Start water for brushing"
+        },
+        {
+          "action": "Wash",
+          "object": "toothbrush",
+          "target": "",
+          "reason": "Wet the brush"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Stop water"
+        }
+      ],
+      "expected_objects": [
+        "light_switch",
+        "soap",
+        "toothbrush",
+        "faucet"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {
+        "at_step": 3,
+        "failure_reason": "Soap dispenser is empty"
+      }
+    },
+    {
+      "task_id": "A08",
+      "task_desc": "Prepare the shower: turn on, adjust, place towel nearby",
+      "room": "bathroom",
+      "scene": "FloorPlan402",
+      "obs": "Bathroom. Shower stall. Towel on rack. Mat on floor.",
+      "visible_objects": [
+        "shower_faucet",
+        "towel",
+        "towel_rack",
+        "bath_mat"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "towel",
+          "target": "",
+          "reason": "Go to towel"
+        },
+        {
+          "action": "Grab",
+          "object": "towel",
+          "target": "",
+          "reason": "Take towel"
+        },
+        {
+          "action": "Navigate",
+          "object": "bath_mat",
+          "target": "",
+          "reason": "Go near shower"
+        },
+        {
+          "action": "Place",
+          "object": "towel",
+          "target": "bath_mat",
+          "reason": "Place towel near shower"
+        },
+        {
+          "action": "Navigate",
+          "object": "shower_faucet",
+          "target": "",
+          "reason": "Go to shower"
+        },
+        {
+          "action": "TurnOn",
+          "object": "shower_faucet",
+          "target": "",
+          "reason": "Turn shower on"
+        }
+      ],
+      "expected_objects": [
+        "shower_faucet",
+        "towel"
+      ],
+      "difficulty": "hard",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "X01",
+      "task_desc": "Put an apple in the microwave and heat it",
+      "room": "kitchen",
+      "scene": "FloorPlan1",
+      "obs": "Kitchen. Apple on counter. Microwave plugged in.",
+      "visible_objects": [
+        "apple",
+        "microwave",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "apple",
+          "target": "",
+          "reason": "Go to apple"
+        },
+        {
+          "action": "Grab",
+          "object": "apple",
+          "target": "",
+          "reason": "Pick up apple"
+        },
+        {
+          "action": "Navigate",
+          "object": "microwave",
+          "target": "",
+          "reason": "Go to microwave"
+        },
+        {
+          "action": "Open",
+          "object": "microwave",
+          "target": "",
+          "reason": "Open microwave door"
+        },
+        {
+          "action": "PutIn",
+          "object": "apple",
+          "target": "microwave",
+          "reason": "Put apple in microwave"
+        },
+        {
+          "action": "Close",
+          "object": "microwave",
+          "target": "",
+          "reason": "Close the door"
+        },
+        {
+          "action": "TurnOn",
+          "object": "microwave",
+          "target": "",
+          "reason": "Start heating"
+        }
+      ],
+      "expected_objects": [
+        "apple",
+        "microwave"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "X02",
+      "task_desc": "Place a book on the coffee table and turn on the lamp",
+      "room": "living_room",
+      "scene": "FloorPlan201",
+      "obs": "Living room. Book on sofa. Coffee table nearby. Lamp in corner.",
+      "visible_objects": [
+        "book",
+        "sofa",
+        "coffee_table",
+        "lamp"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "book",
+          "target": "",
+          "reason": "Go to book"
+        },
+        {
+          "action": "Grab",
+          "object": "book",
+          "target": "",
+          "reason": "Pick up book"
+        },
+        {
+          "action": "Navigate",
+          "object": "coffee_table",
+          "target": "",
+          "reason": "Go to coffee table"
+        },
+        {
+          "action": "Place",
+          "object": "book",
+          "target": "coffee_table",
+          "reason": "Place book on table"
+        },
+        {
+          "action": "Navigate",
+          "object": "lamp",
+          "target": "",
+          "reason": "Go to lamp"
+        },
+        {
+          "action": "TurnOn",
+          "object": "lamp",
+          "target": "",
+          "reason": "Turn lamp on"
+        }
+      ],
+      "expected_objects": [
+        "book",
+        "coffee_table",
+        "lamp"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "X03",
+      "task_desc": "Fill a cup with water from the sink",
+      "room": "kitchen",
+      "scene": "FloorPlan2",
+      "obs": "Kitchen. Cup on table. Sink with faucet accessible.",
+      "visible_objects": [
+        "cup",
+        "sink",
+        "faucet",
+        "counter_top"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "cup",
+          "target": "",
+          "reason": "Go to cup"
+        },
+        {
+          "action": "Grab",
+          "object": "cup",
+          "target": "",
+          "reason": "Pick up cup"
+        },
+        {
+          "action": "Navigate",
+          "object": "sink",
+          "target": "",
+          "reason": "Go to sink"
+        },
+        {
+          "action": "TurnOn",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn on water"
+        },
+        {
+          "action": "Wait",
+          "object": "",
+          "target": "",
+          "reason": "Fill the cup"
+        },
+        {
+          "action": "TurnOff",
+          "object": "faucet",
+          "target": "",
+          "reason": "Turn off water"
+        }
+      ],
+      "expected_objects": [
+        "cup",
+        "faucet"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "X04",
+      "task_desc": "Open the window and then close the curtains",
+      "room": "living_room",
+      "scene": "FloorPlan202",
+      "obs": "Living room. Window with curtains. Curtains open.",
+      "visible_objects": [
+        "window",
+        "curtain",
+        "sofa",
+        "lamp"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "window",
+          "target": "",
+          "reason": "Go to the window"
+        },
+        {
+          "action": "Open",
+          "object": "window",
+          "target": "",
+          "reason": "Open the window"
+        },
+        {
+          "action": "Navigate",
+          "object": "curtain",
+          "target": "",
+          "reason": "Go to curtains"
+        },
+        {
+          "action": "Close",
+          "object": "curtain",
+          "target": "",
+          "reason": "Close the curtains"
+        }
+      ],
+      "expected_objects": [
+        "window",
+        "curtain"
+      ],
+      "difficulty": "easy",
+      "fail_injection": {}
+    },
+    {
+      "task_id": "X05",
+      "task_desc": "Place soap in the cabinet under the sink",
+      "room": "bathroom",
+      "scene": "FloorPlan401",
+      "obs": "Bathroom. Soap on counter. Cabinet under sink.",
+      "visible_objects": [
+        "soap",
+        "sink",
+        "cabinet",
+        "towel"
+      ],
+      "reference_steps": [
+        {
+          "action": "Navigate",
+          "object": "soap",
+          "target": "",
+          "reason": "Go to soap"
+        },
+        {
+          "action": "Grab",
+          "object": "soap",
+          "target": "",
+          "reason": "Pick up soap"
+        },
+        {
+          "action": "Navigate",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Go to cabinet"
+        },
+        {
+          "action": "Open",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Open cabinet"
+        },
+        {
+          "action": "PutIn",
+          "object": "soap",
+          "target": "cabinet",
+          "reason": "Place soap inside"
+        },
+        {
+          "action": "Close",
+          "object": "cabinet",
+          "target": "",
+          "reason": "Close cabinet"
+        }
+      ],
+      "expected_objects": [
+        "soap",
+        "cabinet"
+      ],
+      "difficulty": "medium",
+      "fail_injection": {
+        "at_step": 3,
+        "failure_reason": "Cabinet is already full"
+      }
+    }
+  ]
+}

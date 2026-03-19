@@ -1,0 +1,107 @@
+# PyPlanner
+
+Pluggable LLM task planner for household robotics.  
+Works with any [Ollama](https://ollama.ai) local model.  
+Optional verification via OpenAI or Anthropic API.
+
+## Install
+
+```bash
+# From local source
+pip install -e ./pyplanner
+
+# Or after publishing to PyPI
+pip install pyplanner
+```
+
+## Quick start
+
+```python
+import pyplanner
+
+# Shorthand factory
+planner = pyplanner.direct(host="http://localhost:11434", model="llama3.2")
+
+steps, metrics = planner.generate_plan(
+    task="make coffee",
+    obs="Kitchen. Coffee machine and mug visible.",
+    visible_objects=["coffee_machine", "mug", "counter_top"],
+)
+
+for s in steps:
+    print(f"{s['action']:10} {s['object']:20} {s['reason']}")
+
+print(metrics.to_dict())
+```
+
+## All methods
+
+| Method | Factory | LLM calls | Notes |
+|--------|---------|-----------|-------|
+| Direct | `pyplanner.direct()` | 1 | Baseline — fastest |
+| CoT | `pyplanner.cot()` | 1 | Reason then plan |
+| Few-Shot CoT | `pyplanner.few_shot()` | 1 | Built-in examples |
+| Self-Refine | `pyplanner.self_refine(max_iterations=2)` | 1+2N | Critique loop |
+| ReAct | `pyplanner.react(max_steps=15)` | N | One action per call |
+| Hierarchical | `pyplanner.hierarchical()` | 1+N | Sub-goals first |
+| LLM Router | `pyplanner.llm_router(verifier_backend="openai")` | 2 | Local + verify |
+
+## Via registry
+
+```python
+planner = pyplanner.get("ReAct", model="qwen2.5:7b", max_steps=10)
+```
+
+## Replanning
+
+```python
+new_steps, metrics = planner.replan(
+    task="make coffee",
+    completed=[...],          # steps done so far
+    failed_step={...},        # the step that failed
+    failure_reason="mug not found",
+    obs="...",
+    visible_objects=[...],
+)
+```
+
+## Metrics
+
+Every call returns a `PlanMetrics` object:
+
+```python
+steps, m = planner.generate_plan(...)
+print(m.latency_s)       # wall-clock seconds
+print(m.llm_calls)       # number of LLM round-trips
+print(m.total_tokens)    # input + output tokens
+print(m.tokens_per_step) # efficiency metric
+print(m.to_dict())       # full dict for logging
+```
+
+## Custom actions vocabulary
+
+```python
+from pyplanner.base import ROBOT_ACTIONS
+print(ROBOT_ACTIONS)
+# ['Navigate', 'Find', 'Grab', 'Place', 'PutIn', 'Open', 'Close',
+#  'TurnOn', 'TurnOff', 'Wash', 'Sit', 'LieOn', 'Serve', 'Wait']
+```
+
+## LLM Router — API keys
+
+Set env vars before using `llm_router()`:
+
+```bash
+export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Or pass directly:
+
+```python
+planner = pyplanner.llm_router(
+    model="llama3.2",
+    verifier_backend="anthropic",
+    anthropic_api_key="sk-ant-...",
+)
+```
