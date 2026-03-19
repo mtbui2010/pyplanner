@@ -69,6 +69,16 @@ class ThorClient:
         except Exception:
             return None
 
+
+    def get_objects(self) -> dict:
+        """
+        Get full object list from current scene.
+        Returns dict with keys: objects, scene, obs, visible_objects
+        Each object has: objectType, objectId, visible, pickupable,
+                         openable, toggleable, receptacle, distance, position
+        """
+        return self._send({"cmd": "get_objects"}, timeout_ms=10000)
+
     def get_state(self) -> dict:
         return self._send({"cmd": "get_state"}, timeout_ms=10000)
 

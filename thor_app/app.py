@@ -115,17 +115,66 @@ def fmt_step(step: dict) -> str:
     return label
 
 
+
+def resolve_obj(name: str, visible: list[str] | None = None) -> str:
+    """
+    Map any object name variant to the real AI2-THOR objectType.
+    Tries: exact (case-insensitive) → CamelCase → substring → reverse substring.
+    Falls back to original name if no match found.
+
+    Uses st.session_state.visible_objects when visible is not supplied.
+    """
+    if not name:
+        return name
+
+    candidates = visible if visible is not None else st.session_state.get("visible_objects", [])
+    if not candidates:
+        return name          # no scene loaded — pass through
+
+    key = name.lower().replace("_", "").replace(" ", "")
+
+    # 1. Exact (case-insensitive)
+    for ot in candidates:
+        if ot.lower() == key:
+            return ot
+
+    # 2. CamelCase: coffee_machine → CoffeeMachine
+    camel = "".join(w.capitalize() for w in name.replace("-", "_").split("_"))
+    for ot in candidates:
+        if ot.lower() == camel.lower():
+            return ot
+
+    # 3. Substring: "coffee" → "CoffeeMachine"
+    matches = [ot for ot in candidates if key in ot.lower()]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        return max(matches, key=len)   # pick most specific
+
+    # 4. Reverse substring
+    for ot in candidates:
+        if ot.lower().replace("_", "") in key or key in ot.lower().replace("_", ""):
+            return ot
+
+    return name   # no match — return original
+
+
 def do_step():
     """Execute next step from plan. Trigger replan on failure."""
     if not st.session_state.plan:
         return
 
     step   = st.session_state.plan.pop(0)
+    # Resolve LLM-generated object names to real AI2-THOR objectTypes
+    resolved_obj    = resolve_obj(step.get("object", ""))
+    resolved_target = resolve_obj(step.get("target", ""))
     result = client.step(
         step.get("action", "Wait"),
-        step.get("object", ""),
-        step.get("target", ""),
+        resolved_obj,
+        resolved_target,
     )
+    # Update step with resolved names for accurate logging
+    step = {**step, "object": resolved_obj, "target": resolved_target}
 
     st.session_state.obs             = result.get("obs", st.session_state.obs)
     st.session_state.visible_objects = result.get("visible_objects", [])
@@ -548,6 +597,105 @@ col_cam, col_plan, col_log = st.columns([1, 1, 1], gap="large")
 # COLUMN 1 — Camera + observation
 # ══════════════════════════════════════════════════════════════════════
 with col_cam:
+    # ── Direct command input ──────────────────────────────────────
+    st.subheader("⌨️ Direct Commands")
+    st.caption("One command per line: `Action Object [→ Target]`  ·  Ctrl+Enter to execute")
+
+    with st.form(key="direct_cmd_form", clear_on_submit=True):
+        cmd_text = st.text_area(
+            "commands",
+            placeholder="Navigate apple\nGrab apple\nPlace apple → counter_top\nTurnOn coffee_machine",
+            height=110,
+            label_visibility="collapsed",
+        )
+        cmd_submitted = st.form_submit_button(
+            "▶ Execute  (Ctrl+Enter)",
+            type="primary",
+            use_container_width=True,
+            disabled=not client.connected,
+        )
+
+    if cmd_submitted and cmd_text.strip():
+        import re as _re
+        from pyplanner.base import ROBOT_ACTIONS
+
+        # ── Object name resolver (uses module-level resolve_obj) ──
+        def _resolve_obj(name: str) -> tuple[str, str | None]:
+            """Resolve name and return (resolved, warning_or_None)."""
+            if not name:
+                return name, None
+            resolved = resolve_obj(name)
+            if resolved == name and name:
+                visible = st.session_state.get("visible_objects", [])
+                if visible:
+                    avail = ", ".join(f"`{o}`" for o in visible[:8])
+                    return name, f"`{name}` not found in scene. Visible: {avail}"
+            return resolved, None
+
+        # ── Parse lines ───────────────────────────────────────────
+        parsed_steps = []
+        errors       = []
+        warnings     = []
+
+        for raw_line in cmd_text.strip().splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            # Split on → or -> for target
+            parts  = line.replace("->", "→").split("→", 1)
+            target = parts[1].strip() if len(parts) == 2 else ""
+            left   = parts[0].strip().split(None, 1)
+            if not left:
+                continue
+            action = left[0].strip()
+            obj    = left[1].strip() if len(left) > 1 else ""
+
+            # Validate action
+            if action not in ROBOT_ACTIONS:
+                # Try case-insensitive fix e.g. "navigate" → "Navigate"
+                fixed = next((a for a in ROBOT_ACTIONS if a.lower() == action.lower()), None)
+                if fixed:
+                    action = fixed
+                else:
+                    errors.append(
+                        f"Unknown action `{action}`. "
+                        f"Valid: {', '.join(sorted(ROBOT_ACTIONS))}"
+                    )
+                    continue
+
+            # Resolve object and target to real scene names
+            obj,    obj_warn    = _resolve_obj(obj)
+            target, target_warn = _resolve_obj(target)
+            if obj_warn:    warnings.append(obj_warn)
+            if target_warn: warnings.append(target_warn)
+
+            parsed_steps.append({
+                "action": action,
+                "object": obj,
+                "target": target,
+                "reason": "direct input",
+            })
+
+        # Show errors (block execution) and warnings (inform only)
+        for e in errors:
+            st.error(e)
+        for w in warnings:
+            st.warning(w)
+
+        if parsed_steps and not errors:
+            st.session_state.plan = parsed_steps + st.session_state.plan
+            st.session_state.running = True
+            st.session_state.log.append({
+                "type":  "plan",
+                "steps": parsed_steps.copy(),
+                "n":     st.session_state.replan_count,
+            })
+            st.rerun()
+
+    st.divider()
+
+    # ── Camera ────────────────────────────────────────────────────
     st.subheader("🎥 Robot View")
     frame_ph = st.empty()
 

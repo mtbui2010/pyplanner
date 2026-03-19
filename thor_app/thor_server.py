@@ -517,6 +517,35 @@ class ThorServer:
             except Exception as e:
                 return {"status": "error", "msg": str(e)}
 
+
+        # ── get_objects ──
+        if cmd == "get_objects":
+            if self.controller is None:
+                return {"status": "error", "msg": "no controller"}
+            event = self.controller.step("Pass")
+            objects = []
+            for o in event.metadata["objects"]:
+                objects.append({
+                    "objectType":  o["objectType"],
+                    "objectId":    o["objectId"],
+                    "visible":     o.get("visible", False),
+                    "pickupable":  o.get("pickupable", False),
+                    "openable":    o.get("openable", False),
+                    "toggleable":  o.get("toggleable", False),
+                    "receptacle":  o.get("receptacle", False),
+                    "isOpen":      o.get("isOpen", False),
+                    "isToggled":   o.get("isToggled", False),
+                    "distance":    round(o.get("distance", 999.0), 2),
+                    "position":    o.get("position", {}),
+                })
+            return {
+                "status":  "ok",
+                "objects": objects,
+                "scene":   self.current_task,
+                "obs":     build_obs(event),
+                "visible_objects": get_visible_objects(event),
+            }
+
         # ── get_state ──
         if cmd == "get_state":
             if self.controller is None:
