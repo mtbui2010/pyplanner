@@ -72,14 +72,14 @@ except ImportError:
 
 try:
     from make_dataset import SAMPLES_RAW
-    from make_dataset_from_sim import (
+    from thor_app.evaluate.make_dataset_from_sim import (
         inspect_scene, _find_real_object,
         generate_llm_reference_steps, _check_llm_connection,
     )
 except ImportError:
     sys.path.insert(0, _HERE)
     from make_dataset import SAMPLES_RAW
-    from make_dataset_from_sim import (
+    from thor_app.evaluate.make_dataset_from_sim import (
         inspect_scene, _find_real_object,
         generate_llm_reference_steps, _check_llm_connection,
     )

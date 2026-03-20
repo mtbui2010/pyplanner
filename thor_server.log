@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/media/keti/workdir/remote_dir/pyplanner/thor_app/thor_server.py", line 625, in <module>
+    ThorServer(port=5555).run()
+  File "/media/keti/workdir/remote_dir/pyplanner/thor_app/thor_server.py", line 428, in __init__
+    self.socket.bind(f"tcp://*:{port}")
+  File "/home/keti/miniconda3/envs/task_planner/lib/python3.10/site-packages/zmq/sugar/socket.py", line 320, in bind
+    super().bind(addr)
+  File "zmq/backend/cython/_zmq.py", line 1009, in zmq.backend.cython._zmq.Socket.bind
+  File "zmq/backend/cython/_zmq.py", line 190, in zmq.backend.cython._zmq._check_rc
+zmq.error.ZMQError: Address already in use (addr='tcp://*:5555')

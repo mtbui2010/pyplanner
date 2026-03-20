@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 # ── Defaults ──────────────────────────────────────────────────────────
-DEFAULT_HOST     = "http://localhost:11434"
+# DEFAULT_HOST     = "http://localhost:11434"
+DEFAULT_HOST     = "http://ollama.aistations.org"
 DEFAULT_MODEL    = "llama3.2"
 DEFAULT_BACKEND  = "ollama"
 
@@ -61,19 +62,25 @@ STEP_SCHEMA = """\
 Each step must be a JSON object with these exact fields:
   "action"  : one action from the list above (exact spelling)
   "object"  : target object in snake_case, e.g. apple, coffee_machine, mug, stove
-  "target"  : destination receptacle/surface (only for Place or PutIn, else use "")
+  "target"  : always leave as empty string "" — target is determined by Navigate position
   "reason"  : one short sentence explaining why this step is needed
 
 Rules:
 - Always Navigate or Find an object BEFORE interacting with it
-- Use object names from the visible_objects list when possible
+- Use exact object names from visible_objects list
+- For Place/PutIn: Navigate to the RECEPTACLE first, then call Place (target stays "")
+  CORRECT:  Navigate CoffeeMachine → Place Mug  (target="")
+  WRONG:    Place Mug target=CoffeeMachine  (target field is never used)
 - If the task needs multiple objects, handle them one at a time
 - Maximum 15 steps"""
 
 JSON_EXAMPLE = """\
 {"steps": [
-  {"action": "Navigate", "object": "apple", "target": "", "reason": "Move to the apple"},
-  {"action": "Grab",     "object": "apple", "target": "", "reason": "Pick up the apple"}
+  {"action": "Navigate", "object": "Mug",           "target": "", "reason": "Go to mug"},
+  {"action": "Grab",     "object": "Mug",           "target": "", "reason": "Pick up mug"},
+  {"action": "Navigate", "object": "CoffeeMachine", "target": "", "reason": "Go to coffee machine"},
+  {"action": "Place",    "object": "Mug",           "target": "", "reason": "Place mug (agent is next to CoffeeMachine)"},
+  {"action": "TurnOn",   "object": "CoffeeMachine", "target": "", "reason": "Brew coffee"}
 ]}"""
 
 
@@ -145,8 +152,25 @@ class LLMBackend:
     ):
         self.provider    = provider.lower()
         self.model       = model
-        self.host        = host
         self.temperature = temperature
+
+        # Normalize host: ensure scheme is present
+        # "ollama.aistations.org"        → "https://ollama.aistations.org"
+        # "localhost:11434"               → "http://localhost:11434"
+        # "http://localhost:11434"        → "http://localhost:11434"  (unchanged)
+        # "https://ollama.aistations.org" → "https://ollama.aistations.org" (unchanged)
+        h = host.strip().rstrip("/")
+        if not h.startswith("http://") and not h.startswith("https://"):
+            # localhost / 127.0.0.1 / 192.168.x.x → http, everything else → https
+            is_local = (
+                h.startswith("localhost") or
+                h.startswith("127.") or
+                h.startswith("192.168.") or
+                h.startswith("10.") or
+                h.startswith("172.")
+            )
+            h = ("http://" if is_local else "https://") + h
+        self.host = h
 
         # Resolve API key: arg > env var
         if self.provider == "openai":
@@ -186,12 +210,109 @@ class LLMBackend:
             raise ValueError(f"Unknown provider '{self.provider}'. Use: ollama, openai, anthropic")
 
     # ── Ollama ──
+    @staticmethod
+    def _parse_ollama_response(raw_text: str) -> tuple[str, dict]:
+        """
+        Robustly parse Ollama /api/chat response handling all shapes:
+          1. Normal stream=False  → single JSON object
+          2. Cloudflare leaks chunked stream → multiple JSON lines joined
+          3. Empty content        → model returned nothing
+          4. Error                → {"error": "..."}
+
+        Returns (content, data_dict).
+        """
+        import json as _json
+        raw_text = raw_text.strip()
+
+        # Shape 1: standard single JSON object
+        try:
+            data = _json.loads(raw_text)
+            if "error" in data:
+                raise RuntimeError(f"Ollama error: {data['error']}")
+            content = data.get("message", {}).get("content", "")
+            return content, data
+        except _json.JSONDecodeError:
+            pass
+
+        # Shape 2: Cloudflare leaked chunked stream
+        # Multiple newline-delimited JSON objects — concatenate content,
+        # take token counts from the last chunk with done=true
+        lines = [ln.strip() for ln in raw_text.splitlines() if ln.strip()]
+        full_content = ""
+        last_data: dict = {}
+        for line in lines:
+            try:
+                chunk = _json.loads(line)
+                full_content += chunk.get("message", {}).get("content", "")
+                if chunk.get("done"):
+                    last_data = chunk
+            except _json.JSONDecodeError:
+                continue
+
+        if full_content or last_data:
+            last_data.setdefault("message", {})["content"] = full_content
+            return full_content, last_data
+
+        raise RuntimeError(
+            f"Cannot parse Ollama response "
+            f"(HTTP 200 but unrecognised body). "
+            f"First 300 chars: {raw_text[:300]!r}"
+        )
+
     def _chat_ollama(self, messages, temperature):
-        client  = self._get_ollama_client()
-        resp    = client.chat(model=self.model, messages=messages, options={"temperature": temperature})
-        content = resp["message"]["content"]
-        in_tok  = resp.get("prompt_eval_count") or _approx_tokens(" ".join(m["content"] for m in messages))
-        out_tok = resp.get("eval_count")         or _approx_tokens(content)
+        """
+        Call Ollama with stream=False via plain requests (not the ollama
+        Python client) to avoid Cloudflare Tunnel buffering / SSE issues.
+
+        Handles all known response shapes including Cloudflare leaking
+        chunked stream bodies as concatenated NDJSON.
+        """
+        import requests as _req
+
+        url  = self.host.rstrip("/") + "/api/chat"
+        body = {
+            "model":    self.model,
+            "messages": messages,
+            "stream":   False,      # single JSON response, no SSE
+            "options":  {"temperature": temperature},
+        }
+
+        try:
+            resp = _req.post(url, json=body, timeout=120)
+        except _req.exceptions.ConnectionError as e:
+            raise ConnectionRefusedError(
+                f"Cannot reach Ollama at {self.host}\n"
+                f"  Error: {e}\n"
+                f"  Check: OLLAMA_HOST=0.0.0.0:11434 and OLLAMA_ORIGINS=* "
+                f"are set in the container"
+            ) from e
+
+        # Surface HTTP errors with useful context
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"Ollama returned HTTP {resp.status_code}\n"
+                f"  URL: {url}\n"
+                f"  Body: {resp.text[:200]}"
+            )
+
+        raw      = resp.text
+        content, data = self._parse_ollama_response(raw)
+
+        if not content:
+            # Empty response — log raw for debugging and raise clearly
+            raise RuntimeError(
+                f"Ollama returned empty content.\n"
+                f"  Model   : {self.model}\n"
+                f"  Host    : {self.host}\n"
+                f"  Raw resp: {raw[:400]!r}\n"
+                f"  Hint    : check OLLAMA_ORIGINS=* and "
+                f"HTTP Host Header in Cloudflare tunnel config"
+            )
+
+        in_tok  = data.get("prompt_eval_count") or _approx_tokens(
+            " ".join(m.get("content", "") for m in messages)
+        )
+        out_tok = data.get("eval_count") or _approx_tokens(content)
         return content, in_tok, out_tok
 
     # ── OpenAI ──
@@ -305,8 +426,27 @@ class BasePlanner(ABC):
         self._backend = LLMBackend(provider=provider, model=model, host=host, api_key=api_key)
 
     def _chat(self, messages: list[dict], temperature: float = 0.2) -> tuple[str, int, int]:
-        """Call the configured LLM backend. Returns (content, in_tokens, out_tokens)."""
-        return self._backend.chat(messages, temperature=temperature)
+        """
+        Call the configured LLM backend. Returns (content, in_tokens, out_tokens).
+        Connection/auth errors are re-raised so evaluate_sample() can record them
+        properly instead of silently producing empty plans.
+        """
+        try:
+            return self._backend.chat(messages, temperature=temperature)
+        except Exception as e:
+            err_str = str(e).lower()
+            # Re-raise connection/auth errors — these indicate a config problem,
+            # not a recoverable parse failure, and should be visible immediately.
+            FATAL_KEYWORDS = [
+                "connection refused", "cannot connect", "timed out", "timeout",
+                "name or service not known", "no route to host",
+                "network is unreachable", "remotedisconnected", "connectionreset",
+                "401", "unauthorized", "api key", "invalid key",
+                "http error 4", "http error 5",
+            ]
+            if any(kw in err_str for kw in FATAL_KEYWORDS):
+                raise  # propagate — do not silently return empty plan
+            raise  # always propagate; planners' except blocks store in metrics.notes
 
     def _make_metrics(self, **kwargs) -> PlanMetrics:
         """Helper to create a PlanMetrics pre-filled with method/model/backend."""

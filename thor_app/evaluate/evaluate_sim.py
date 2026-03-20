@@ -71,7 +71,7 @@ try:
         score_executability, score_precondition, score_redundancy,
         score_completeness, score_hallucination, compute_quality_score,
     )
-    from evaluate import (
+    from thor_app.evaluate.evaluate import (
         check_connection, compute_efficiency_score,
         compute_robustness_score, compute_overall_score,
         _DryRunPlanner, CSV_COLUMNS as OFFLINE_COLUMNS,
@@ -84,7 +84,7 @@ except ImportError:
         score_executability, score_precondition, score_redundancy,
         score_completeness, score_hallucination, compute_quality_score,
     )
-    from evaluate import (
+    from thor_app.evaluate.evaluate import (
         check_connection, compute_efficiency_score,
         compute_robustness_score, compute_overall_score,
         _DryRunPlanner, CSV_COLUMNS as OFFLINE_COLUMNS,

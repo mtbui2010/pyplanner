@@ -4,6 +4,7 @@
 #   pip install ai2thor pyzmq
 #   python thor_server.py
 
+from __future__ import annotations
 import json
 import base64
 import math
@@ -164,29 +165,59 @@ def skill_grab(controller: Controller, object_type: str, **_) -> tuple[bool, str
 
 
 def skill_place(controller: Controller, object_type: str, target: str, **_) -> tuple[bool, str]:
-    """Place held object onto a receptacle."""
+    """
+    Place held object onto / into a receptacle.
+
+    AI2-THOR modern API (v3+): PutObject only accepts objectId of the held
+    object. The agent must be adjacent to the receptacle — then the engine
+    resolves placement automatically.
+
+    Strategy:
+      1. Navigate to the receptacle.
+      2. Call PutObject(objectId=held_object_id, forceAction=True).
+         forceAction=True bypasses receptacle-restriction checks that can
+         wrongly reject valid placements (e.g. Apple onto CounterTop).
+    """
+    # 1. Find receptacle
     recep = _find_object(controller, target)
     if not recep:
         return False, f"Cannot find receptacle '{target}'"
 
+    # 2. Navigate to it
     nav_ok, nav_msg = _navigate_to(controller, recep["objectId"])
     if not nav_ok:
         return False, nav_msg
 
-    # find what we're holding
+    # 3. Get held object
     event = controller.step("Pass")
     held  = [o for o in event.metadata["objects"] if o.get("isPickedUp")]
     if not held:
-        return False, "Agent is not holding anything"
+        return False, "Agent is not holding anything — did you Grab the object first?"
 
+    held_obj = held[0]
+
+    # 4. PutObject — modern API: objectId only, no receptacleObjectId
     event = controller.step(
         action="PutObject",
-        objectId=held[0]["objectId"],
-        receptacleObjectId=recep["objectId"],
+        objectId=held_obj["objectId"],
+        forceAction=True,       # bypass receptacle-restriction checks
+        placeStationary=True,   # deterministic placement (no physics roll)
     )
     if event.metadata["lastActionSuccess"]:
-        return True, f"Placed {held[0]['objectType']} on {target}"
-    return False, event.metadata.get("errorMessage", "Place failed")
+        return True, f"Placed {held_obj['objectType']} on/in {target}"
+
+    err = event.metadata.get("errorMessage", "Place failed")
+
+    # Fallback: try without forceAction in case it causes issues with this version
+    event2 = controller.step(
+        action="PutObject",
+        objectId=held_obj["objectId"],
+        placeStationary=True,
+    )
+    if event2.metadata["lastActionSuccess"]:
+        return True, f"Placed {held_obj['objectType']} on/in {target}"
+
+    return False, event2.metadata.get("errorMessage", err)
 
 
 def skill_open(controller: Controller, object_type: str, **_) -> tuple[bool, str]:

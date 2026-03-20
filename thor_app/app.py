@@ -6,6 +6,7 @@
 #   pip install -e ../pyplanner
 # Or if pip install is not possible, the path-fallback below handles it automatically.
 
+from __future__ import annotations
 import sys
 import os
 import time
@@ -99,8 +100,14 @@ for k, v in DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-if st.session_state.client is None:
-    st.session_state.client = ThorClient(host="localhost", port=5555)
+# Client is recreated when host/port changes (see sidebar)
+_sim_host = st.session_state.get("cfg_sim_host", "localhost")
+_sim_port = int(st.session_state.get("cfg_sim_port", 5555))
+_client_key = f"{_sim_host}:{_sim_port}"
+
+if st.session_state.client is None or st.session_state.get("_client_key") != _client_key:
+    st.session_state.client     = ThorClient(host=_sim_host, port=_sim_port)
+    st.session_state["_client_key"] = _client_key
 
 client: ThorClient = st.session_state.client
 
@@ -168,11 +175,22 @@ def do_step():
     # Resolve LLM-generated object names to real AI2-THOR objectTypes
     resolved_obj    = resolve_obj(step.get("object", ""))
     resolved_target = resolve_obj(step.get("target", ""))
-    result = client.step(
-        step.get("action", "Wait"),
-        resolved_obj,
-        resolved_target,
-    )
+    try:
+        result = client.step(
+            step.get("action", "Wait"),
+            resolved_obj,
+            resolved_target,
+        )
+    except Exception as _e:
+        # ZMQ timeout or simulator crash — stop gracefully
+        st.session_state.log.append({
+            "type": "failed",
+            "reason": f"Simulator error: {_e}",
+        })
+        st.session_state.running      = False
+        st.session_state.auto_running = False
+        client.reconnect()
+        return
     # Update step with resolved names for accurate logging
     step = {**step, "object": resolved_obj, "target": resolved_target}
 
@@ -208,25 +226,34 @@ def do_step():
 
         st.session_state.replan_count += 1
         planner = st.session_state.planner_obj
+        new_plan, replan_metrics = [], None
         if planner is not None:
-            new_plan, replan_metrics = planner.replan(
-                st.session_state.task_label,
-                st.session_state.completed,
-                step,
-                result.get("msg", "step failed"),
-                result.get("obs", ""),
-                st.session_state.visible_objects,
-            )
-        else:
-            new_plan, replan_metrics = [], None
+            try:
+                new_plan, replan_metrics = planner.replan(
+                    st.session_state.task_label,
+                    st.session_state.completed,
+                    step,
+                    result.get("msg", "step failed"),
+                    result.get("obs", ""),
+                    st.session_state.visible_objects,
+                )
+            except Exception as _re:
+                st.session_state.log.append({
+                    "type": "failed",
+                    "reason": f"Replan error: {_re}",
+                })
+                st.session_state.running      = False
+                st.session_state.auto_running = False
+                return
 
         st.session_state.plan = new_plan
-        st.session_state.log.append({
-            "type":    "replan",
-            "steps":   new_plan.copy(),
-            "n":       st.session_state.replan_count,
-            "metrics": replan_metrics,
-        })
+        if new_plan is not None:
+            st.session_state.log.append({
+                "type":    "replan",
+                "steps":   new_plan.copy(),
+                "n":       st.session_state.replan_count,
+                "metrics": replan_metrics,
+            })
 
     if not st.session_state.plan and st.session_state.running:
         st.session_state.running      = False
@@ -241,77 +268,123 @@ with st.sidebar:
     st.title("🤖 Daily Assistant")
     st.caption("AI2-THOR · Local Ollama · Streamlit")
 
-    # ── Connection status ──
-    if client.connected:
-        st.success("Simulator connected", icon="🟢")
-    else:
-        st.error("Simulator offline", icon="🔴")
-        st.code("python thor_server.py", language="bash")
-        if st.button("↺ Retry connection", use_container_width=True):
+    # ── Simulator connection ──────────────────────────────────────────
+    st.subheader("Simulator")
+
+    col_h, col_p = st.columns([3, 1])
+    with col_h:
+        sim_host = st.text_input(
+            "Host",
+            value="localhost",
+            key="cfg_sim_host",
+            label_visibility="collapsed",
+            placeholder="localhost or 192.168.x.x",
+        )
+    with col_p:
+        sim_port = st.number_input(
+            "Port",
+            value=5555,
+            min_value=1,
+            max_value=65535,
+            step=1,
+            key="cfg_sim_port",
+            label_visibility="collapsed",
+        )
+
+    # Re-create client if host/port changed
+    _new_key = f"{sim_host}:{sim_port}"
+    if st.session_state.get("_client_key") != _new_key:
+        st.session_state.client = ThorClient(host=sim_host, port=int(sim_port))
+        st.session_state["_client_key"] = _new_key
+        client = st.session_state.client
+
+    # Status + test button
+    col_status, col_test = st.columns([2, 1])
+    with col_status:
+        if client.connected:
+            st.success("Connected", icon="🟢")
+        else:
+            st.error("Offline", icon="🔴")
+
+    with col_test:
+        if st.button("Ping", use_container_width=True, help="Test connection now"):
+            import time as _t
+            t0 = _t.perf_counter()
             client.reconnect()
+            latency_ms = (_t.perf_counter() - t0) * 1000
+            if client.connected:
+                st.toast(f"✅ Connected  ({latency_ms:.0f} ms)", icon="🟢")
+            else:
+                st.toast("❌ No response", icon="🔴")
             st.rerun()
+
+    if not client.connected:
+        st.caption(f"Run on `{sim_host}:{sim_port}`:")
+        st.code("python thor_server.py", language="bash")
 
     st.divider()
 
     # ── Task selection ──
     st.subheader("Task")
 
+    # Persist mode in session_state so switching Browse ↔ Type freely
+    # doesn't reset other widgets on rerun
+    if "input_mode" not in st.session_state:
+        st.session_state["input_mode"] = "Type freely"   # default
+
     mode = st.radio(
         "input_mode",
-        ["Browse", "Type freely"],
+        ["Type freely", "Browse"],
         horizontal=True,
         label_visibility="collapsed",
+        key="input_mode",
     )
 
-    if mode == "Browse":
-        cat        = st.selectbox("Category", list(CATEGORIES.keys()))
-        task_label = st.selectbox("Task", CATEGORIES[cat])
-        task_info  = get_task_info(task_label)
-        st.caption(f"_{task_info['desc']}_")
-    else:
-        # custom = st.text_input(
-        #     "Describe task",
-        #     placeholder="make coffee, wash hands, watch TV...",
-        # )
-        # if not custom.strip():
-        #     st.info("Type a task above.")
-        #     st.stop()
-        # task_label = match_task_from_text(custom)
-        # task_info  = get_task_info(task_label)
-        # st.caption(f"Matched: **{task_label}**")
-        # st.caption(f"_{task_info['desc']}_")
+    if mode == "Type freely":
         custom = st.text_input(
-            "Describe task",
-            placeholder="pick up the apple, make coffee, wash hands...",
+            "Task description",
+            placeholder="make coffee, wash hands, watch TV...",
+            key="task_custom_text",
         )
-        if not custom.strip():
-            st.info("Type a task above.")
-            st.stop()
+        # Show hint inline — no st.stop(), layout stays stable
+        task_ready = bool(custom.strip())
+        if not task_ready:
+            st.caption("⬆ Type a task then press **▶ Start**.")
 
-        # Không cần match — dùng thẳng input làm task description
-        task_label = custom.strip()
+        task_label = custom.strip() or "_"  # placeholder keeps downstream code happy
 
-        # Chỉ cần scene — chọn room type đơn giản
         room_for_task = st.selectbox(
-            "Which room?",
+            "Room",
             ["Kitchen", "Living room", "Bedroom", "Bathroom"],
+            key="task_room_select",
         )
         lo, hi = PLAN_RANGES[room_for_task]
         task_info = {
             "scene": f"FloorPlan{lo}",
             "desc":  custom.strip(),
         }
+    else:
+        task_ready    = True
+        cat           = st.selectbox("Category", list(CATEGORIES.keys()), key="browse_cat")
+        task_label    = st.selectbox("Task", CATEGORIES[cat], key="browse_task")
+        task_info     = get_task_info(task_label)
+        st.caption(f"_{task_info['desc']}_")
 
     st.divider()
 
     # ── Scene picker ──
     st.subheader("Scene")
 
+    # Persist scene_mode — default to Manual pick
+    if "scene_mode" not in st.session_state:
+        st.session_state["scene_mode"] = "Manual pick"
+
     scene_mode = st.radio(
         "scene_mode",
-        ["Auto (from task)", "Manual pick"],
+        ["Manual pick", "Auto (from task)"],
         horizontal=True,
         label_visibility="collapsed",
+        key="scene_mode",
     )
 
     if scene_mode == "Manual pick":
@@ -319,6 +392,7 @@ with st.sidebar:
             "Room type",
             list(PLAN_RANGES.keys()),
             index=0,
+            key="cfg_scene_room",
         )
         lo, hi = PLAN_RANGES[room_type]
         plan_num = st.slider(
@@ -327,6 +401,7 @@ with st.sidebar:
             max_value=hi,
             value=lo,
             step=1,
+            key="cfg_scene_num",
         )
 
         # Quick preset buttons
@@ -347,11 +422,13 @@ with st.sidebar:
                 st.session_state.obs             = resp.get("obs", "")
                 st.session_state.visible_objects = resp.get("visible_objects", [])
                 st.session_state.task_scene      = final_scene
-                st.caption(f"✅ Scene `{final_scene}` loaded")
+                st.session_state["_last_frame"]  = None   # clear so new scene fetches fresh frame
+                st.rerun()
             else:
                 st.warning(f"Could not load `{final_scene}`: {resp.get('msg', '')}")
         else:
-            st.caption(f"Scene: `{final_scene}`")
+            loaded = st.session_state.get("task_scene") == final_scene
+            st.caption(f"{'✅' if loaded else '🗺'} Scene: `{final_scene}`")
     else:
         st.session_state.pop("_last_manual_scene", None)
         final_scene = task_info["scene"]
@@ -362,12 +439,16 @@ with st.sidebar:
     # ── Config ──
     st.subheader("Config")
 
+    # All widgets in the config section use explicit key= so their values
+    # are stored in session_state and survive reruns from other widgets.
+
     # ── Planning method ──
     method_names    = list(REGISTRY.keys())
     selected_method = st.selectbox(
         "🧩 Planning method",
         method_names,
         index=0,
+        key="cfg_method",
         help="Algorithm used to generate the action plan.",
     )
     st.caption(f"_{REGISTRY[selected_method].description}_")
@@ -381,32 +462,36 @@ with st.sidebar:
     router_claude_key  = ""
 
     if selected_method == "ReAct":
-        react_max_steps = st.slider("Max steps (ReAct)", 5, 20, 15)
+        react_max_steps = st.slider("Max steps (ReAct)", 5, 20, 15, key="cfg_react_steps")
     elif selected_method == "Self-Refine":
-        refine_iterations = st.slider("Refine iterations", 1, 4, 2)
+        refine_iterations = st.slider("Refine iterations", 1, 4, 2, key="cfg_refine_iter")
     elif selected_method == "LLM Router":
         router_backend = st.radio(
             "Verifier backend",
             ["openai", "anthropic"],
             horizontal=True,
+            key="cfg_router_backend",
             help="Which external API verifies/fixes the local plan.",
         )
         default_vm = "gpt-4o-mini" if router_backend == "openai" else "claude-haiku-4-5-20251001"
         router_model = st.text_input(
             "Verifier model (optional)",
             placeholder=default_vm,
+            key="cfg_router_model",
             help=f"Leave empty to use default: {default_vm}",
         )
         if router_backend == "openai":
             router_openai_key = st.text_input(
                 "OpenAI API key",
                 type="password",
+                key="cfg_router_oai_key",
                 help="Or set OPENAI_API_KEY env variable.",
             )
         else:
             router_claude_key = st.text_input(
                 "Anthropic API key",
                 type="password",
+                key="cfg_router_claude_key",
                 help="Or set ANTHROPIC_API_KEY env variable.",
             )
         st.caption("💡 Local model generates; external API only verifies (cheaper).")
@@ -418,6 +503,7 @@ with st.sidebar:
         "Provider",
         ["ollama", "openai", "anthropic"],
         index=0,
+        key="cfg_provider",
         help="ollama = local server · openai = ChatGPT API · anthropic = Claude API",
         label_visibility="collapsed",
     )
@@ -428,10 +514,11 @@ with st.sidebar:
             "🌐 Ollama host URL",
             value=DEFAULT_HOST,
             placeholder="http://localhost:11434",
+            key="cfg_ollama_host",
             help="URL of the Ollama server (local or remote).",
         )
     else:
-        ollama_host = DEFAULT_HOST   # unused but keeps variable defined
+        ollama_host = st.session_state.get("cfg_ollama_host", DEFAULT_HOST)
 
     # Model selector — dynamic list per provider
     model_list     = PROVIDER_MODELS[selected_provider]
@@ -439,12 +526,14 @@ with st.sidebar:
         "🧠 Model",
         model_list,
         index=0,
+        key="cfg_model",
         help=f"Model for the {selected_provider} provider.",
     )
-    # Custom model text override
+    # Custom model override — persists independently
     custom_model = st.text_input(
         "Custom model name (optional)",
         placeholder=f"e.g. {model_list[0]}",
+        key="cfg_custom_model",
         help="Override the dropdown — type any model name supported by the provider.",
         label_visibility="visible",
     )
@@ -457,24 +546,26 @@ with st.sidebar:
         planner_api_key = st.text_input(
             "🔑 OpenAI API key",
             type="password",
+            key="cfg_oai_key",
             help="Starts with sk-... · Or set OPENAI_API_KEY env variable.",
         )
     elif selected_provider == "anthropic":
         planner_api_key = st.text_input(
             "🔑 Anthropic API key",
             type="password",
+            key="cfg_claude_key",
             help="Starts with sk-ant-... · Or set ANTHROPIC_API_KEY env variable.",
         )
 
     st.session_state["planner_model"]    = selected_model
     st.session_state["planner_provider"] = selected_provider
 
-    max_replan = st.slider("Max replans", 1, 5, 3)
+    max_replan = st.slider("Max replans", 1, 5, 3, key="cfg_max_replan")
     st.session_state.max_replan = max_replan
 
-    step_delay = st.slider("Auto-step delay (s)", 0.3, 3.0, 0.8, 0.1)
+    step_delay = st.slider("Auto-step delay (s)", 0.3, 3.0, 0.8, 0.1, key="cfg_step_delay")
 
-    auto_exec = st.toggle("Auto-execute all steps", value=False)
+    auto_exec = st.toggle("Auto-execute all steps", value=False, key="cfg_auto_exec")
 
     st.divider()
 
@@ -486,7 +577,7 @@ with st.sidebar:
             "▶ Start",
             type="primary",
             use_container_width=True,
-            disabled=not client.connected,
+            disabled=not client.connected or not task_ready,
             help="Generate action plan and begin execution",
         )
     with col_reset:
@@ -546,11 +637,22 @@ with st.sidebar:
             st.session_state.visible_objects = visible_for_plan
 
         with st.spinner(f"🧠 [{selected_method} · {selected_provider} · {selected_model}] Generating plan..."):
-            plan, metrics = planner.generate_plan(
-                task_info["desc"],
-                obs_for_plan,
-                visible_for_plan,
-            )
+            try:
+                plan, metrics = planner.generate_plan(
+                    task_info["desc"],
+                    obs_for_plan,
+                    visible_for_plan,
+                )
+            except Exception as _e:
+                st.session_state.running = False
+                st.error(f"❌ Plan generation failed: {_e}", icon="🚨")
+                st.caption("Check LLM host URL, model name, and API key.")
+                st.stop()
+
+        if not plan:
+            st.session_state.running = False
+            st.warning("⚠ LLM returned empty plan. Try different model or rephrase task.")
+            st.stop()
 
         st.session_state.plan         = plan
         st.session_state.last_metrics = metrics
@@ -583,10 +685,11 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════
 st.header("🤖 Daily Assistant Robot")
 if st.session_state.task_label:
-    info = get_task_info(st.session_state.task_label)
+    _tinfo = get_task_info(st.session_state.task_label)
+    _desc  = _tinfo.get("desc", st.session_state.task_label)
     st.caption(
         f"**{st.session_state.task_label}**"
-        f"  ·  {info['desc']}"
+        f"  ·  {_desc}"
         f"  ·  scene `{st.session_state.task_scene}`"
     )
 
@@ -699,9 +802,18 @@ with col_cam:
     st.subheader("🎥 Robot View")
     frame_ph = st.empty()
 
-    frame = client.get_frame() if client.connected else None
-    if frame:
-        frame_ph.image(frame, use_column_width=True)
+    # Use cached frame from session_state so it survives rerun after do_step()
+    # Fresh frame is only fetched on explicit Refresh or first load
+    cached_frame = st.session_state.get("_last_frame")
+    if cached_frame:
+        frame_ph.image(cached_frame, use_column_width=True)
+    elif client.connected:
+        live = client.get_frame()
+        if live:
+            st.session_state["_last_frame"] = live
+            frame_ph.image(live, use_column_width=True)
+        else:
+            frame_ph.info("No camera feed.\nStart a task to see robot view.")
     else:
         frame_ph.info("No camera feed.\nStart a task to see robot view.")
 
@@ -709,6 +821,7 @@ with col_cam:
         if st.button("🔄 Refresh frame", use_container_width=True):
             f = client.get_frame()
             if f:
+                st.session_state["_last_frame"] = f
                 frame_ph.image(f, use_column_width=True)
 
     if st.session_state.obs:
@@ -721,9 +834,19 @@ with col_cam:
     if st.session_state.visible_objects:
         with st.expander(
             f"Visible objects ({len(st.session_state.visible_objects)})",
-            expanded=False,
+            expanded=True,   # auto-expand after scene load so user sees objects
         ):
-            st.write(", ".join(st.session_state.visible_objects))
+            # Show as a grid of small chips for readability
+            st.markdown(
+                " ".join(
+                    f'<span style="display:inline-block;padding:2px 8px;margin:2px;'
+                    f'border-radius:12px;font-size:12px;'
+                    f'background:var(--color-background-secondary);'
+                    f'border:1px solid var(--color-border-tertiary)">{o}</span>'
+                    for o in st.session_state.visible_objects
+                ),
+                unsafe_allow_html=True,
+            )
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -756,7 +879,7 @@ with col_plan:
                 time.sleep(step_delay)
                 f = client.get_frame()
                 if f:
-                    frame_ph.image(f, use_column_width=True)
+                    st.session_state["_last_frame"] = f
                 st.rerun()
             else:
                 if st.button("▶▶ Resume auto", type="primary", use_container_width=True):
@@ -767,7 +890,7 @@ with col_plan:
                 do_step()
                 f = client.get_frame()
                 if f:
-                    frame_ph.image(f, use_column_width=True)
+                    st.session_state["_last_frame"] = f
                 st.rerun()
 
     elif not st.session_state.plan and st.session_state.running:
