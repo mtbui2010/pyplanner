@@ -60,10 +60,10 @@ except ModuleNotFoundError:
 from pyplanner import REGISTRY, DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
 
 try:
-    from thor_client import ThorClient
+    from thor_app.sim_client import ThorClient
 except ImportError:
     sys.path.insert(0, _HERE)
-    from thor_client import ThorClient
+    from thor_app.sim_client import ThorClient
 
 try:
     from make_dataset import (
@@ -636,7 +636,7 @@ def main():
     parser.add_argument("--host",      default=DEFAULT_HOST)
     parser.add_argument("--model",     default=DEFAULT_MODEL)
     parser.add_argument("--provider",  default=DEFAULT_BACKEND,
-                        choices=["ollama","openai","anthropic"])
+                        choices=["ollama","openai","gemini"])
     parser.add_argument("--api-key",   default="")
     parser.add_argument("--sim-host",  default="localhost",
                         help="ThorServer host (default: localhost)")

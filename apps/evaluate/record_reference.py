@@ -55,10 +55,10 @@ from dataclasses import dataclass, field, asdict
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    from thor_client import ThorClient
+    from thor_app.sim_client import ThorClient
 except ImportError:
     sys.path.insert(0, _HERE)
-    from thor_client import ThorClient
+    from thor_app.sim_client import ThorClient
 
 try:
     import pyplanner
@@ -440,7 +440,7 @@ def main():
     parser.add_argument("--host",        default=DEFAULT_HOST,
                         help="Ollama/LLM host URL")
     parser.add_argument("--provider",    default=DEFAULT_BACKEND,
-                        choices=["ollama", "openai", "anthropic"])
+                        choices=["ollama", "openai", "gemini"])
     parser.add_argument("--api-key",     default="")
     parser.add_argument("--scenes",      nargs="+", default=None)
     parser.add_argument("--max-retries", type=int, default=2,

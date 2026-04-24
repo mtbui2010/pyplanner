@@ -9,4 +9,7 @@ Collecting usage statistics. To deactivate, set browser.gatherUsageStats to fals
   Network URL: http://192.168.1.18:8502
   External URL: http://203.254.173.79:8502
 
-2026-03-20 13:17:08.809 The `use_column_width` parameter has been deprecated and will be removed in a future release. Please utilize the `width` parameter instead.
+2026-03-25 09:42:25.628 The `use_column_width` parameter has been deprecated and will be removed in a future release. Please utilize the `width` parameter instead.
+2026-03-25 13:09:35.380 The `use_column_width` parameter has been deprecated and will be removed in a future release. Please utilize the `width` parameter instead.
+2026-03-25 13:09:53.611 The `use_column_width` parameter has been deprecated and will be removed in a future release. Please utilize the `width` parameter instead.
+2026-03-25 15:31:26.448 The `use_column_width` parameter has been deprecated and will be removed in a future release. Please utilize the `width` parameter instead.

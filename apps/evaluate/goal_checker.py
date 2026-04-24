@@ -109,7 +109,7 @@ def _was_grabbed(obj_name: str, steps: list[dict]) -> bool:
     """Check if object was grabbed in executed steps."""
     name_l = obj_name.lower().replace("_", "")
     return any(
-        s.get("action") in ("Grab", "PickupObject")
+        s.get("action") in ("Pick", "PickupObject")
         and name_l in s.get("object", "").lower()
         for s in steps
     )
@@ -188,7 +188,7 @@ def _goal_cook_egg(om, steps):
 
 def _goal_get_fridge(om, steps):
     fridge_opened = _is_open("fridge", om) or _was_grabbed("", steps)  # any grab after open
-    item_grabbed  = any(s.get("action") == "Grab" for s in steps)
+    item_grabbed  = any(s.get("action") == "Pick" for s in steps)
     if item_grabbed and any("fridge" in s.get("object","").lower() or _is_open("fridge", om) for s in steps):
         return True, 0.85, "Item retrieved from fridge"
     if _is_open("fridge", om) and item_grabbed:

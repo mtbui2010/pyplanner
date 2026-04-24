@@ -46,6 +46,7 @@ from pyplanner.self_refine  import SelfRefinePlanner
 from pyplanner.react        import ReActPlanner
 from pyplanner.hierarchical import HierarchicalPlanner
 from pyplanner.llm_router   import LLMRouterPlanner
+from pyplanner.my_planner   import HierarchicalFewShotPlanner
 
 __version__ = "0.1.0"
 __all__ = [
@@ -53,20 +54,23 @@ __all__ = [
     "ROBOT_ACTIONS", "PROVIDER_MODELS", "DEFAULT_HOST", "DEFAULT_MODEL", "DEFAULT_BACKEND",
     "DirectPlanner", "CoTPlanner", "FewShotPlanner",
     "SelfRefinePlanner", "ReActPlanner", "HierarchicalPlanner", "LLMRouterPlanner",
+    "HierarchicalFewShotPlanner",
     "direct", "cot", "few_shot", "self_refine", "react", "hierarchical", "llm_router",
+    "hierarchical_few_shot",
     "get", "list_methods",
     "REGISTRY",
 ]
 
 # ── Registry ──────────────────────────────────────────────────────────
 REGISTRY: dict[str, type[BasePlanner]] = {
-    "Direct":       DirectPlanner,
-    "CoT":          CoTPlanner,
-    "Few-Shot CoT": FewShotPlanner,
-    "Self-Refine":  SelfRefinePlanner,
-    "ReAct":        ReActPlanner,
-    "Hierarchical": HierarchicalPlanner,
-    "LLM Router":   LLMRouterPlanner,
+    "Direct":                DirectPlanner,
+    "CoT":                   CoTPlanner,
+    "Few-Shot CoT":          FewShotPlanner,
+    "Self-Refine":           SelfRefinePlanner,
+    "ReAct":                 ReActPlanner,
+    "Hierarchical":          HierarchicalPlanner,
+    "LLM Router":            LLMRouterPlanner,
+    "Hierarchical Few-Shot": HierarchicalFewShotPlanner,
 }
 
 
@@ -153,6 +157,18 @@ def hierarchical(host: str = DEFAULT_HOST, model: str = DEFAULT_MODEL,
                  provider: str = DEFAULT_BACKEND, api_key: str = "") -> HierarchicalPlanner:
     """Hierarchical: decompose to sub-goals, then expand each to actions."""
     return HierarchicalPlanner(host=host, model=model, provider=provider, api_key=api_key)
+
+
+def hierarchical_few_shot(
+    host: str  = DEFAULT_HOST,
+    model: str = DEFAULT_MODEL,
+    provider: str = DEFAULT_BACKEND,
+    api_key: str  = "",
+    top_k: int    = 3,
+) -> HierarchicalFewShotPlanner:
+    """Hierarchical + dynamic few-shot: retrieves top-k similar examples, then decomposes & expands."""
+    return HierarchicalFewShotPlanner(host=host, model=model, provider=provider,
+                                      api_key=api_key, top_k=top_k)
 
 
 def llm_router(

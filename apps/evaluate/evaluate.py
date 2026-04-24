@@ -166,15 +166,15 @@ def check_connection(provider: str, host: str, model: str, api_key: str) -> tupl
         except Exception as e:
             return False, f"OpenAI connection error: {e}"
 
-    elif provider == "anthropic":
-        key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+    elif provider == "gemini":
+        key = api_key or os.getenv("GEMINI_API_KEY", "")
         if not key:
             return False, (
-                "Anthropic API key not set.\n"
-                "  Fix: python evaluate.py --api-key sk-ant-...\n"
-                "       or:  export ANTHROPIC_API_KEY=sk-ant-..."
+                "Gemini API key not set.\n"
+                "  Fix: python evaluate.py --api-key AIza...\n"
+                "       or:  export GEMINI_API_KEY=AIza..."
             )
-        return True, "Anthropic key present (not pinged)"
+        return True, "Gemini key present (not pinged)"
 
     return True, ""
 
@@ -308,9 +308,9 @@ class _DryRunPlanner:
     def generate_plan(self, task, obs, visible_objects):
         from pyplanner.base import PlanMetrics
         steps = [
-            {"action": "Navigate", "object": visible_objects[0] if visible_objects else "object",
+            {"action": "MoveTo", "object": visible_objects[0] if visible_objects else "object",
              "target": "", "reason": "stub"},
-            {"action": "Grab",     "object": visible_objects[0] if visible_objects else "object",
+            {"action": "Pick",     "object": visible_objects[0] if visible_objects else "object",
              "target": "", "reason": "stub"},
         ]
         m = PlanMetrics(method=self.name, model=self.model, backend=self.provider,
@@ -320,7 +320,7 @@ class _DryRunPlanner:
 
     def replan(self, task, completed, failed_step, failure_reason, obs, visible_objects):
         from pyplanner.base import PlanMetrics
-        steps = [{"action": "Navigate", "object": "sink", "target": "", "reason": "stub replan"}]
+        steps = [{"action": "MoveTo", "object": "sink", "target": "", "reason": "stub replan"}]
         m = PlanMetrics(method=self.name, model=self.model, backend=self.provider,
                         latency_s=0.01, llm_calls=1, input_tokens=60, output_tokens=20,
                         num_steps=1, parse_ok=True)
@@ -617,10 +617,10 @@ def main():
     parser.add_argument("--model",    default=DEFAULT_MODEL,
                         help=f"Model name (default: {DEFAULT_MODEL})")
     parser.add_argument("--provider", default=DEFAULT_BACKEND,
-                        choices=["ollama", "openai", "anthropic"],
+                        choices=["ollama", "openai", "gemini"],
                         help="LLM provider (default: ollama)")
     parser.add_argument("--api-key",  default="",
-                        help="API key for openai/anthropic (or set env var)")
+                        help="API key for openai/gemini (or set env var)")
     parser.add_argument("--out",      default="eval_results.csv",
                         help="Output CSV path (default: eval_results.csv)")
     parser.add_argument("--dry-run",  action="store_true",

@@ -1,10 +1,16 @@
-Traceback (most recent call last):
-  File "/media/keti/workdir/remote_dir/pyplanner/thor_app/thor_server.py", line 625, in <module>
-    ThorServer(port=5555).run()
-  File "/media/keti/workdir/remote_dir/pyplanner/thor_app/thor_server.py", line 428, in __init__
-    self.socket.bind(f"tcp://*:{port}")
-  File "/home/keti/miniconda3/envs/task_planner/lib/python3.10/site-packages/zmq/sugar/socket.py", line 320, in bind
-    super().bind(addr)
-  File "zmq/backend/cython/_zmq.py", line 1009, in zmq.backend.cython._zmq.Socket.bind
-  File "zmq/backend/cython/_zmq.py", line 190, in zmq.backend.cython._zmq._check_rc
-zmq.error.ZMQError: Address already in use (addr='tcp://*:5555')
+[09:42:08] INFO Listening on port 5555
+[09:42:08] INFO Available skills: ['Navigate', 'Find', 'Grab', 'Place', 'PutIn', 'Open', 'Close', 'TurnOn', 'TurnOff', 'Wash', 'Sit', 'LieOn', 'Serve', 'Wait']
+[09:42:08] INFO Ready. Waiting for requests…
+[09:42:22] INFO Resetting — sim_type=thor, task=FloorPlan1
+[09:42:25] INFO Initialize return: {'cameraNearPlane': 0.009999999776482582, 'cameraFarPlane': 20.0}
+[13:09:46] INFO Resetting — sim_type=procthor, task=FloorPlan1
+[AI2-THOR WARNING] There has been an update to ProcTHOR-10K that must be used with AI2-THOR version 5.0+. To use the new version of ProcTHOR-10K, please update AI2-THOR to version 5.0+ by running:
+    pip install --upgrade ai2thor
+Alternatively, to downgrade to the old version of ProcTHOR-10K, run:
+   prior.load_dataset("procthor-10k", revision="ab3cacd0fc17754d4c080a3fd50b18395fae8647")
+Loading train:   0%|          | 0/10000 [00:00<?, ?it/s]Loading train:  11%|█         | 1076/10000 [00:00<00:00, 10750.40it/s]Loading train:  22%|██▏       | 2210/10000 [00:00<00:00, 11094.21it/s]Loading train:  33%|███▎      | 3327/10000 [00:00<00:00, 11127.50it/s]Loading train:  44%|████▍     | 4440/10000 [00:00<00:00, 10999.08it/s]Loading train:  55%|█████▌    | 5541/10000 [00:00<00:00, 10878.84it/s]Loading train:  66%|██████▋   | 6642/10000 [00:00<00:00, 10922.74it/s]Loading train:  77%|███████▋  | 7735/10000 [00:00<00:00, 10828.40it/s]Loading train:  89%|████████▊ | 8851/10000 [00:00<00:00, 10931.79it/s]Loading train: 100%|█████████▉| 9956/10000 [00:00<00:00, 10967.27it/s]Loading train: 100%|██████████| 10000/10000 [00:00<00:00, 10953.21it/s]
+Loading val:   0%|          | 0/1000 [00:00<?, ?it/s]Loading val: 100%|██████████| 1000/1000 [00:00<00:00, 11465.11it/s]
+Loading test:   0%|          | 0/1000 [00:00<?, ?it/s]Loading test: 100%|██████████| 1000/1000 [00:00<00:00, 11502.49it/s]
+[13:09:51] INFO Initialize return: {'cameraNearPlane': 0.009999999776482582, 'cameraFarPlane': 20.0}
+[15:31:22] INFO Resetting — sim_type=thor, task=FloorPlan1
+[15:31:26] INFO Initialize return: {'cameraNearPlane': 0.009999999776482582, 'cameraFarPlane': 20.0}

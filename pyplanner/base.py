@@ -3,9 +3,9 @@
 Shared base class, data structures, and LLM backend abstraction for all PyPlanner methods.
 
 Supported backends:
-  - "ollama"    : local Ollama server (default)
-  - "openai"    : OpenAI API (GPT-4o, GPT-4o-mini, o1, ...)
-  - "anthropic" : Anthropic API (claude-opus-4-6, claude-sonnet-4-6, ...)
+  - "ollama"  : local Ollama server (default)
+  - "openai"  : OpenAI API (GPT-4o, GPT-4o-mini, o1, ...)
+  - "gemini"  : Google Gemini API (gemini-2.5-flash, gemini-2.0-flash, ...)
 """
 
 from __future__ import annotations
@@ -21,17 +21,23 @@ from typing import Any
 # ── Defaults ──────────────────────────────────────────────────────────
 # DEFAULT_HOST     = "http://localhost:11434"
 DEFAULT_HOST     = "http://ollama.aistations.org"
-DEFAULT_MODEL    = "llama3.2"
+DEFAULT_MODEL    = "llama3.3:70b"
 DEFAULT_BACKEND  = "ollama"
 
-OPENAI_API_URL    = "https://api.openai.com/v1/chat/completions"
-ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-ANTHROPIC_VERSION = "2023-06-01"
+OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 # ── Model presets per provider ─────────────────────────────────────────
 PROVIDER_MODELS: dict[str, list[str]] = {
+    "gemini": [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+    ],
     "ollama": [
-        "llama3.2", "llama3.1", "llama3",
+        "llama3.3:70b", "llama3.2", "exaone3.5",
         "qwen2.5:3b", "qwen2.5:7b", "qwen2.5:14b",
         "mistral", "mistral-nemo",
         "gemma2:2b", "gemma2:9b",
@@ -42,16 +48,10 @@ PROVIDER_MODELS: dict[str, list[str]] = {
         "gpt-4-turbo", "gpt-4",
         "o1", "o1-mini", "o3-mini",
     ],
-    "anthropic": [
-        "claude-sonnet-4-6", "claude-opus-4-6",
-        "claude-haiku-4-5-20251001",
-        "claude-3-5-sonnet-20241022",
-        "claude-3-5-haiku-20241022",
-    ],
 }
 
 ROBOT_ACTIONS = [
-    "Navigate", "Find", "Grab", "Place", "PutIn",
+    "MoveTo", "Find", "Pick", "Place", "PutIn",
     "Open", "Close", "TurnOn", "TurnOff",
     "Wash", "Sit", "LieOn", "Serve", "Wait",
 ]
@@ -59,28 +59,57 @@ ROBOT_ACTIONS = [
 ACTIONS_STR = "\n".join(f"  {a}" for a in ROBOT_ACTIONS)
 
 STEP_SCHEMA = """\
-Each step must be a JSON object with these exact fields:
-  "action"  : one action from the list above (exact spelling)
-  "object"  : target object in snake_case, e.g. apple, coffee_machine, mug, stove
-  "target"  : always leave as empty string "" — target is determined by Navigate position
-  "reason"  : one short sentence explaining why this step is needed
+Each step is a JSON object with exactly two fields:
+  "action" : one action from the list above (exact spelling)
+  "object" : target in CamelCase, e.g. Apple, CoffeeMachine, Kitchen, DiningTable
 
-Rules:
-- Always Navigate or Find an object BEFORE interacting with it
-- Use exact object names from visible_objects list
-- For Place/PutIn: Navigate to the RECEPTACLE first, then call Place (target stays "")
-  CORRECT:  Navigate CoffeeMachine → Place Mug  (target="")
-  WRONG:    Place Mug target=CoffeeMachine  (target field is never used)
-- If the task needs multiple objects, handle them one at a time
-- Maximum 15 steps"""
+Action rules:
+- MoveTo <room|furniture>  : navigate to a room (Kitchen, LivingRoom, Bedroom, Bathroom)
+                             or furniture/receptacle in current room (DiningTable, Sofa).
+                             Updates 'arrived' in robot state.
+                             Use MoveTo for ALL navigation — rooms AND furniture.
+- Find <object>            : find a PICKUPABLE object in the current room (e.g. Apple, Mug,
+                             RemoteControl, Towel, SoapBottle). DO NOT use Find for rooms
+                             or furniture — use MoveTo for those.
+                             Updates 'found' in robot state.
+- Pick                     : assert 'found' is set, then pick it up. object field ignored.
+- Open/Close/TurnOn/TurnOff: assert 'found' is set, then act on it. object field ignored.
+                             Note: use Find before Open/Close only for containers (Fridge,
+                             Cabinet, Drawer, Microwave) that hold an object to retrieve.
+- Place <receptacle>       : assert 'holding' and 'arrived', then place held object.
+                             object = receptacle name (must match 'arrived').
+
+Container rule (REQUIRED even if not stated in the task):
+  If the target object is inside a container (Fridge, Cabinet, Drawer, Microwave, etc.),
+  you MUST navigate to the container, open it, find the object inside, pick it, then close.
+  Pattern: MoveTo <container> → Open <container> → Find <object> → Pick → Close <container>
+
+Typical sequences:
+  Simple grab and place:
+    MoveTo Kitchen → Find Apple → Pick → MoveTo LivingRoom → MoveTo DiningTable → Place DiningTable
+  Object inside container (e.g. apple in fridge):
+    MoveTo Kitchen → MoveTo Fridge → Open Fridge → Find Apple → Pick → Close Fridge → MoveTo LivingRoom → MoveTo DiningTable → Place DiningTable"""
 
 JSON_EXAMPLE = """\
 {"steps": [
-  {"action": "Navigate", "object": "Mug",           "target": "", "reason": "Go to mug"},
-  {"action": "Grab",     "object": "Mug",           "target": "", "reason": "Pick up mug"},
-  {"action": "Navigate", "object": "CoffeeMachine", "target": "", "reason": "Go to coffee machine"},
-  {"action": "Place",    "object": "Mug",           "target": "", "reason": "Place mug (agent is next to CoffeeMachine)"},
-  {"action": "TurnOn",   "object": "CoffeeMachine", "target": "", "reason": "Brew coffee"}
+  {"action": "MoveTo", "object": "Kitchen"},
+  {"action": "Find",   "object": "Apple"},
+  {"action": "Pick",   "object": "Apple"},
+  {"action": "MoveTo", "object": "DiningTable"},
+  {"action": "Place",  "object": "DiningTable"}
+]}
+
+Example with container:
+{"steps": [
+  {"action": "MoveTo", "object": "Kitchen"},
+  {"action": "Find",   "object": "Fridge"},
+  {"action": "Open",   "object": "Fridge"},
+  {"action": "Find",   "object": "Apple"},
+  {"action": "Pick",   "object": "Apple"},
+  {"action": "Find",   "object": "Fridge"},
+  {"action": "Close",  "object": "Fridge"},
+  {"action": "MoveTo", "object": "DiningTable"},
+  {"action": "Place",  "object": "DiningTable"}
 ]}"""
 
 
@@ -175,8 +204,8 @@ class LLMBackend:
         # Resolve API key: arg > env var
         if self.provider == "openai":
             self.api_key = api_key or os.getenv("OPENAI_API_KEY", "")
-        elif self.provider == "anthropic":
-            self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+        elif self.provider == "gemini":
+            self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
         else:
             self.api_key = ""  # Ollama needs no key
 
@@ -204,10 +233,10 @@ class LLMBackend:
             return self._chat_ollama(messages, temp)
         elif self.provider == "openai":
             return self._chat_openai(messages, temp)
-        elif self.provider == "anthropic":
-            return self._chat_anthropic(messages, temp)
+        elif self.provider == "gemini":
+            return self._chat_gemini(messages, temp)
         else:
-            raise ValueError(f"Unknown provider '{self.provider}'. Use: ollama, openai, anthropic")
+            raise ValueError(f"Unknown provider '{self.provider}'. Use: ollama, openai, gemini")
 
     # ── Ollama ──
     @staticmethod
@@ -329,38 +358,35 @@ class LLMBackend:
         usage   = data.get("usage", {})
         return content, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
 
-    # ── Anthropic ──
-    def _chat_anthropic(self, messages, temperature):
+    # ── Gemini ──
+    def _chat_gemini(self, messages, temperature):
         import requests as _req
         if not self.api_key:
-            raise ValueError("Anthropic API key not set. Pass api_key= or set ANTHROPIC_API_KEY env var.")
-        # Extract system message if present
-        system   = ""
-        filtered = []
+            raise ValueError("Gemini API key not set. Pass api_key= or set GEMINI_API_KEY env var.")
+        # Extract system message; map roles user/assistant → user/model
+        system_text = ""
+        contents    = []
         for m in messages:
             if m["role"] == "system":
-                system = m["content"]
+                system_text = m["content"]
             else:
-                filtered.append(m)
-        headers = {
-            "x-api-key":         self.api_key,
-            "anthropic-version": ANTHROPIC_VERSION,
-            "Content-Type":      "application/json",
+                role = "model" if m["role"] == "assistant" else "user"
+                contents.append({"role": role, "parts": [{"text": m["content"]}]})
+
+        body: dict = {
+            "contents":        contents,
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": 2048},
         }
-        body = {
-            "model":       self.model,
-            "max_tokens":  2048,
-            "temperature": temperature,
-            "messages":    filtered,
-        }
-        if system:
-            body["system"] = system
-        resp  = _req.post(ANTHROPIC_API_URL, headers=headers, json=body, timeout=60)
+        if system_text:
+            body["system_instruction"] = {"parts": [{"text": system_text}]}
+
+        url  = GEMINI_API_URL.format(model=self.model) + f"?key={self.api_key}"
+        resp = _req.post(url, json=body, timeout=60)
         resp.raise_for_status()
-        data  = resp.json()
-        content = data["content"][0]["text"]
-        usage   = data.get("usage", {})
-        return content, usage.get("input_tokens", 0), usage.get("output_tokens", 0)
+        data    = resp.json()
+        content = data["candidates"][0]["content"]["parts"][0]["text"]
+        usage   = data.get("usageMetadata", {})
+        return content, usage.get("promptTokenCount", 0), usage.get("candidatesTokenCount", 0)
 
 
 # ══════════════════════════════════════════════════════════════════════

@@ -129,8 +129,8 @@ class HierarchicalPlanner(BasePlanner):
         # Deduplicate consecutive identical Navigate steps
         deduped = []
         for s in all_steps:
-            if (deduped and s["action"] == "Navigate"
-                    and deduped[-1]["action"] == "Navigate"
+            if (deduped and s["action"] == "MoveTo"
+                    and deduped[-1]["action"] == "MoveTo"
                     and deduped[-1]["object"] == s["object"]):
                 continue
             deduped.append(s)

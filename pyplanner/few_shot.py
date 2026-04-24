@@ -14,70 +14,13 @@
 
 import re
 import time
+from pyplanner.few_shot_examples import FEW_SHOT_EXAMPLES
 
 from pyplanner.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA,
     BasePlanner, PlanMetrics, parse_steps,
 )
 
-FEW_SHOT_EXAMPLES = '''
-=== EXAMPLE 1 ===
-Task: Make a cup of coffee
-Visible objects: coffee_machine, mug, counter_top, fridge
-
-Reasoning:
-- Goal: activate the coffee machine and have coffee in a mug
-- Objects needed: coffee_machine, mug
-- Order: navigate to mug → grab mug → place mug under machine → navigate to machine → turn on machine
-- Risk: mug must be placed before turning on machine
-
-Plan:
-{"steps": [
-  {"action": "Navigate", "object": "mug",            "target": "",             "reason": "Move to the mug"},
-  {"action": "Grab",     "object": "mug",            "target": "",             "reason": "Pick up the mug"},
-  {"action": "Navigate", "object": "coffee_machine", "target": "",             "reason": "Move to the coffee machine"},
-  {"action": "Place",    "object": "mug",            "target": "coffee_machine","reason": "Put mug under the dispenser"},
-  {"action": "TurnOn",   "object": "coffee_machine", "target": "",             "reason": "Start brewing coffee"}
-]}
-
-=== EXAMPLE 2 ===
-Task: Brush teeth
-Visible objects: toothbrush, toothpaste, sink, faucet
-
-Reasoning:
-- Goal: complete the tooth-brushing routine
-- Objects needed: toothbrush, sink
-- Order: navigate toothbrush → grab → navigate sink → turn on faucet → wash toothbrush → turn off faucet
-- Risk: must reach sink before turning it on
-
-Plan:
-{"steps": [
-  {"action": "Navigate", "object": "toothbrush", "target": "",    "reason": "Move to toothbrush"},
-  {"action": "Grab",     "object": "toothbrush", "target": "",    "reason": "Pick up the toothbrush"},
-  {"action": "Navigate", "object": "sink",        "target": "",    "reason": "Move to the sink"},
-  {"action": "TurnOn",   "object": "faucet",      "target": "",    "reason": "Start water flow"},
-  {"action": "Wash",     "object": "toothbrush",  "target": "",    "reason": "Wet and clean the brush"},
-  {"action": "TurnOff",  "object": "faucet",      "target": "",    "reason": "Stop the water"}
-]}
-
-=== EXAMPLE 3 ===
-Task: Watch TV
-Visible objects: television, remote_control, sofa
-
-Reasoning:
-- Goal: turn on TV and sit to watch
-- Objects needed: television (or remote), sofa
-- Order: navigate TV → turn on → navigate sofa → sit
-- Risk: sitting before turning on TV is inefficient but acceptable; turning on TV first is cleaner
-
-Plan:
-{"steps": [
-  {"action": "Navigate", "object": "television",     "target": "", "reason": "Move to the TV"},
-  {"action": "TurnOn",   "object": "television",     "target": "", "reason": "Switch the TV on"},
-  {"action": "Navigate", "object": "sofa",           "target": "", "reason": "Move to the sofa"},
-  {"action": "Sit",      "object": "sofa",           "target": "", "reason": "Sit down to watch"}
-]}
-'''
 
 SYSTEM_PROMPT = f"""You are a household assistant robot planner.
 Study the examples below, then generate a plan for the new task using the SAME format.

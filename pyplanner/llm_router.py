@@ -3,14 +3,14 @@
 #
 # Two-model pipeline:
 #   Step 1 — Ollama (local, fast) generates an initial plan
-#   Step 2 — External API (OpenAI GPT-4o or Anthropic Claude) acts as a critic/verifier
+#   Step 2 — External API (OpenAI GPT-4o or Google Gemini) acts as a critic/verifier
 #             that either approves the plan or rewrites problematic steps
 #
 # This exploits: local model's speed + frontier model's reasoning quality
 # for verification only (cheaper than full generation on paid API).
 #
-# Supported backends: "openai" (GPT-4o-mini default) or "anthropic" (Claude Haiku)
-# Set OPENAI_API_KEY or ANTHROPIC_API_KEY in environment before use.
+# Supported backends: "openai" (GPT-4o-mini default) or "gemini" (gemini-2.5-flash default)
+# Set OPENAI_API_KEY or GEMINI_API_KEY in environment before use.
 #
 # Fallback: if external API fails, returns the local plan with a note in metrics.
 
@@ -28,11 +28,11 @@ from pyplanner.base import (
 from pyplanner.direct import DirectPlanner
 
 # ── External API defaults ──
-OPENAI_URL   = "https://api.openai.com/v1/chat/completions"
-ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+OPENAI_URL  = "https://api.openai.com/v1/chat/completions"
+GEMINI_URL  = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-OPENAI_MODEL    = "gpt-4o-mini"
-ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
+OPENAI_MODEL  = "gpt-4o-mini"
+GEMINI_MODEL  = "gemini-2.5-flash"
 
 VERIFY_SYSTEM = f"""You are a robot plan verifier.
 Given a task description and a robot action plan, check for:
@@ -90,38 +90,33 @@ def _call_openai(steps: list[dict], task: str, api_key: str, model: str) -> tupl
         return None, 0, 0, f"openai error: {e}"
 
 
-def _call_anthropic(steps: list[dict], task: str, api_key: str, model: str) -> tuple[list[dict] | None, int, int, str]:
+def _call_gemini(steps: list[dict], task: str, api_key: str, model: str) -> tuple[list[dict] | None, int, int, str]:
     """Returns (corrected_steps_or_None, in_tokens, out_tokens, note)."""
     user_msg = f"Task: {task}\n\nPlan to verify:\n{_steps_to_text(steps)}\n\nVerify and fix if needed:"
-    headers = {
-        "x-api-key":         api_key,
-        "anthropic-version": "2023-06-01",
-        "Content-Type":      "application/json",
-    }
     body = {
-        "model":      model,
-        "max_tokens": 1000,
-        "system":     VERIFY_SYSTEM,
-        "messages": [{"role": "user", "content": user_msg}],
+        "system_instruction": {"parts": [{"text": VERIFY_SYSTEM}]},
+        "contents": [{"role": "user", "parts": [{"text": user_msg}]}],
+        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1000},
     }
+    url = GEMINI_URL.format(model=model) + f"?key={api_key}"
     try:
-        resp = requests.post(ANTHROPIC_URL, headers=headers, json=body, timeout=30)
+        resp = requests.post(url, json=body, timeout=30)
         resp.raise_for_status()
         data    = resp.json()
-        content = data["content"][0]["text"].strip()
-        usage   = data.get("usage", {})
-        in_tok  = usage.get("input_tokens", 0)
-        out_tok = usage.get("output_tokens", 0)
+        content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        usage   = data.get("usageMetadata", {})
+        in_tok  = usage.get("promptTokenCount", 0)
+        out_tok = usage.get("candidatesTokenCount", 0)
 
         if "APPROVED" in content.upper():
-            return None, in_tok, out_tok, "anthropic: approved"
+            return None, in_tok, out_tok, "gemini: approved"
 
         corrected = parse_steps(content)
         if corrected:
-            return corrected, in_tok, out_tok, f"anthropic: rewrote {len(steps)}→{len(corrected)} steps"
-        return None, in_tok, out_tok, "anthropic: parse failed, keeping original"
+            return corrected, in_tok, out_tok, f"gemini: rewrote {len(steps)}→{len(corrected)} steps"
+        return None, in_tok, out_tok, "gemini: parse failed, keeping original"
     except Exception as e:
-        return None, 0, 0, f"anthropic error: {e}"
+        return None, 0, 0, f"gemini error: {e}"
 
 
 class LLMRouterPlanner(BasePlanner):
@@ -140,23 +135,23 @@ class LLMRouterPlanner(BasePlanner):
         verifier_backend: str  = "openai",
         verifier_model: str    = "",
         openai_api_key: str    = "",
-        anthropic_api_key: str = "",
+        gemini_api_key: str    = "",
         **kwargs,
     ):
         super().__init__(host=host, model=model, provider=provider, api_key=api_key)
         self.backend           = verifier_backend
         self.verifier_model    = verifier_model
-        self.openai_key        = openai_api_key   or os.getenv("OPENAI_API_KEY",    "")
-        self.anthropic_key     = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
+        self.openai_key  = openai_api_key or os.getenv("OPENAI_API_KEY",  "")
+        self.gemini_key  = gemini_api_key  or os.getenv("GEMINI_API_KEY",   "")
         self._local            = DirectPlanner(host=host, model=model, provider=provider, api_key=api_key)
 
     def _verify(self, steps: list[dict], task: str) -> tuple[list[dict], int, int, str]:
-        if self.backend == "anthropic":
-            key   = self.anthropic_key
-            model = self.verifier_model or ANTHROPIC_MODEL
+        if self.backend == "gemini":
+            key   = self.gemini_key
+            model = self.verifier_model or GEMINI_MODEL
             if not key:
-                return steps, 0, 0, "no ANTHROPIC_API_KEY — skipped verification"
-            corrected, i, o, note = _call_anthropic(steps, task, key, model)
+                return steps, 0, 0, "no GEMINI_API_KEY — skipped verification"
+            corrected, i, o, note = _call_gemini(steps, task, key, model)
         else:
             key   = self.openai_key
             model = self.verifier_model or OPENAI_MODEL

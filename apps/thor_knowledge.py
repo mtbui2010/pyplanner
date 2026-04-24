@@ -63,9 +63,9 @@ KEYWORD_MAP = {
 
 # ── Skill actions for LLM prompt ──
 ROBOT_ACTIONS = [
-    "Navigate",  # Move to object
+    "MoveTo",  # Move to object
     "Find",      # Locate and face object
-    "Grab",      # Pick up object
+    "Pick",      # Pick up object
     "Place",     # Put object on surface
     "PutIn",     # Put object inside container
     "Open",      # Open container/door/appliance

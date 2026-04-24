@@ -43,10 +43,10 @@ from collections import defaultdict
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    from thor_client import ThorClient
+    from thor_app.sim_client import ThorClient
 except ImportError:
     sys.path.insert(0, _HERE)
-    from thor_client import ThorClient
+    from thor_app.sim_client import ThorClient
 
 try:
     import pyplanner
@@ -256,8 +256,8 @@ Rules:
 
 Return ONLY valid JSON, no markdown:
 {"steps": [
-  {"action": "Navigate", "object": "Mug", "target": "", "reason": "Move to the mug"},
-  {"action": "Grab",     "object": "Mug", "target": "", "reason": "Pick up the mug"}
+  {"action": "MoveTo", "object": "Mug", "target": "", "reason": "Move to the mug"},
+  {"action": "Pick",     "object": "Mug", "target": "", "reason": "Pick up the mug"}
 ]}"""
 
 
@@ -591,14 +591,14 @@ def _check_llm_connection(provider: str, host: str, model: str, api_key: str) ->
         except Exception as e:
             return False, f"OpenAI connection error: {e}"
 
-    elif provider == "anthropic":
-        key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+    elif provider == "gemini":
+        key = api_key or os.getenv("GEMINI_API_KEY", "")
         if not key:
             return False, (
-                "Anthropic API key not set.\n"
-                "  Fix: --api-key sk-ant-...  or  export ANTHROPIC_API_KEY=sk-ant-..."
+                "Gemini API key not set.\n"
+                "  Fix: --api-key AIza...  or  export GEMINI_API_KEY=AIza..."
             )
-        return True, "Anthropic key present"
+        return True, "Gemini key present"
 
     return True, f"Unknown provider '{provider}'"
 
@@ -616,7 +616,7 @@ def main():
     parser.add_argument("--model",      default=DEFAULT_MODEL)
     parser.add_argument("--host",       default=DEFAULT_HOST)
     parser.add_argument("--provider",   default=DEFAULT_BACKEND,
-                        choices=["ollama","openai","anthropic"])
+                        choices=["ollama","openai","gemini"])
     parser.add_argument("--api-key",    default="")
     parser.add_argument("--scenes",     nargs="+", default=None,
                         help="Only process specific scenes, e.g. FloorPlan1 FloorPlan2")
