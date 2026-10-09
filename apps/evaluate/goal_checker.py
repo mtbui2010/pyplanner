@@ -115,16 +115,50 @@ def _was_grabbed(obj_name: str, steps: list[dict]) -> bool:
     )
 
 
-def _was_placed_on(obj_name: str, target_name: str, steps: list[dict]) -> bool:
-    """Check if object was placed/put on a target."""
+def _placements_from_steps(steps: list[dict]) -> list[tuple[str, str]]:
+    """Schema-aware (item, receptacle) placements, tracking the held item across
+    Pick->Place. Handles BOTH conventions: (a) Place object=item, target=receptacle;
+    (b) the canonical ROBOT_ACTIONS schema Place object=receptacle, item implicit
+    (the most recently picked object). Only SUCCESSFUL executed steps are passed in,
+    so a recorded Place means AI2-THOR actually performed the placement."""
+    held = None
+    out: list[tuple[str, str]] = []
+    for s in steps:
+        a = s.get("action", "")
+        o = s.get("object", "").lower().replace("_", "")
+        t = s.get("target", "").lower().replace("_", "")
+        if a in ("Pick", "PickupObject", "Grab"):
+            held = o
+        elif a in ("Place", "PutIn", "Serve"):
+            if t:                       # schema (a): explicit item + target
+                out.append((o, t))
+            elif held:                  # schema (b): held item placed onto object(=receptacle)
+                out.append((held, o))
+            else:                       # unknown item — record receptacle only
+                out.append(("", o))
+            held = None
+    return out
+
+
+def _was_placed_on(obj_name: str, target_name: str, steps: list[dict],
+                   om: dict | None = None) -> bool:
+    """True if `obj_name` was placed on/in `target_name`. Uses schema-aware step
+    tracking (item carried across Pick->Place); optionally confirmed by final
+    metadata (parentReceptacles) when an object_map is supplied."""
     obj_l    = obj_name.lower().replace("_", "")
     target_l = target_name.lower().replace("_", "")
-    return any(
-        s.get("action") in ("Place", "PutIn", "Serve")
-        and obj_l    in s.get("object", "").lower()
-        and target_l in s.get("target", "").lower()
-        for s in steps
-    )
+    for item, recept in _placements_from_steps(steps):
+        item_ok = (not obj_l) or (obj_l in item) or (item and item in obj_l)
+        if item_ok and (target_l in recept or recept in target_l) and recept:
+            return True
+    # metadata confirmation: does an object of type obj sit in a receptacle of type target?
+    if om:
+        o = _obj(obj_name, om)
+        if o:
+            for pid in (o.get("parentReceptacles") or []):
+                if target_l in str(pid).lower():
+                    return True
+    return False
 
 
 def _was_turned_on(obj_name: str, steps: list[dict]) -> bool:

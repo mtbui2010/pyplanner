@@ -114,7 +114,12 @@ def check_connection(provider: str, host: str, model: str, api_key: str) -> tupl
     if provider == "ollama":
         try:
             url = host.rstrip("/") + "/api/tags"
-            with urllib.request.urlopen(url, timeout=5) as resp:
+            # Some reverse proxies (e.g. ollama.aistations.org) reject the
+            # default "Python-urllib/x.y" User-Agent with HTTP 403. Send a
+            # browser-ish UA so the pre-flight check matches what the actual
+            # requests-based chat in base.py already gets through with.
+            req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
             available = [m["name"] for m in data.get("models", [])]
             # Check if requested model is present

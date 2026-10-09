@@ -47,16 +47,19 @@ from pyplanner.react        import ReActPlanner
 from pyplanner.hierarchical import HierarchicalPlanner
 from pyplanner.llm_router   import LLMRouterPlanner
 from pyplanner.my_planner   import HierarchicalFewShotPlanner
+from pyplanner.grace        import GRACEPlanner
+from pyplanner.llmp         import LLMPPlanner
+from pyplanner.saycan       import SayCanPlanner
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "BasePlanner", "PlanMetrics", "LLMBackend", "parse_steps",
     "ROBOT_ACTIONS", "PROVIDER_MODELS", "DEFAULT_HOST", "DEFAULT_MODEL", "DEFAULT_BACKEND",
     "DirectPlanner", "CoTPlanner", "FewShotPlanner",
     "SelfRefinePlanner", "ReActPlanner", "HierarchicalPlanner", "LLMRouterPlanner",
-    "HierarchicalFewShotPlanner",
+    "HierarchicalFewShotPlanner", "GRACEPlanner",
     "direct", "cot", "few_shot", "self_refine", "react", "hierarchical", "llm_router",
-    "hierarchical_few_shot",
+    "hierarchical_few_shot", "grace",
     "get", "list_methods",
     "REGISTRY",
 ]
@@ -71,6 +74,9 @@ REGISTRY: dict[str, type[BasePlanner]] = {
     "Hierarchical":          HierarchicalPlanner,
     "LLM Router":            LLMRouterPlanner,
     "Hierarchical Few-Shot": HierarchicalFewShotPlanner,
+    "GRACE":                 GRACEPlanner,
+    "LLM+P":                 LLMPPlanner,
+    "SayCan":                SayCanPlanner,
 }
 
 
@@ -187,4 +193,26 @@ def llm_router(
         verifier_model=verifier_model,
         openai_api_key=openai_api_key,
         anthropic_api_key=anthropic_api_key,
+    )
+
+
+def grace(
+    host:           str  = DEFAULT_HOST,
+    model:          str  = DEFAULT_MODEL,
+    provider:       str  = DEFAULT_BACKEND,
+    api_key:        str  = "",
+    top_k:          int  = 3,
+    max_refines:    int  = 1,
+    gt_path:        str  = "",
+    live_path:      str  = "",
+    use_chroma:     bool = False,
+    chroma_path:    str  = "",
+) -> GRACEPlanner:
+    """GRACE: hierarchical + symbolic precondition verifier + hybrid memory
+    retrieval + local sub-goal repair. The most complete planner."""
+    return GRACEPlanner(
+        host=host, model=model, provider=provider, api_key=api_key,
+        top_k=top_k, max_refines=max_refines,
+        gt_path=gt_path, live_path=live_path,
+        use_chroma=use_chroma, chroma_path=chroma_path,
     )

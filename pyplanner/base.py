@@ -56,6 +56,15 @@ ROBOT_ACTIONS = [
     "Wash", "Sit", "LieOn", "Serve", "Wait",
 ]
 
+# Optional cross-domain actions (e.g. ALFWorld's heat/cool/clean), opt-in via the
+# PYPLANNER_EXTRA_ACTIONS env var so the DEFAULT vocabulary — and therefore every
+# existing AI2-THOR prompt and cached result — stays byte-identical. The verifier
+# imports ROBOT_ACTIONS, so it stays in sync automatically. Set the var BEFORE
+# importing pyplanner, e.g. PYPLANNER_EXTRA_ACTIONS="Heat,Cool,Clean".
+for _a in (x.strip() for x in os.environ.get("PYPLANNER_EXTRA_ACTIONS", "").split(",")):
+    if _a and _a not in ROBOT_ACTIONS:
+        ROBOT_ACTIONS.append(_a)
+
 ACTIONS_STR = "\n".join(f"  {a}" for a in ROBOT_ACTIONS)
 
 STEP_SCHEMA = """\
@@ -89,6 +98,20 @@ Typical sequences:
     MoveTo Kitchen → Find Apple → Pick → MoveTo LivingRoom → MoveTo DiningTable → Place DiningTable
   Object inside container (e.g. apple in fridge):
     MoveTo Kitchen → MoveTo Fridge → Open Fridge → Find Apple → Pick → Close Fridge → MoveTo LivingRoom → MoveTo DiningTable → Place DiningTable"""
+
+# Schema note for the opt-in cross-domain actions — appended ONLY when they are
+# enabled, so the default THOR schema string is unchanged.
+if any(_x in ROBOT_ACTIONS for _x in ("Heat", "Cool", "Clean")):
+    STEP_SCHEMA += """
+
+Cross-domain object-treatment actions (use ONLY when the task requires them):
+- Heat <object>            : heat the object you are HOLDING using an appliance
+                             (e.g. Microwave). Requires 'holding' the object.
+- Cool <object>            : cool the object you are HOLDING using an appliance
+                             (e.g. Fridge). Requires 'holding' the object.
+- Clean <object>           : clean/rinse the object you are HOLDING at a sink.
+                             Requires 'holding' the object.
+  Typical: ... Find <obj> → Pick → Heat <obj> → MoveTo <recep> → Place <recep>"""
 
 JSON_EXAMPLE = """\
 {"steps": [
@@ -178,10 +201,16 @@ class LLMBackend:
         host:        str   = DEFAULT_HOST,
         api_key:     str   = "",
         temperature: float = 0.2,
+        seed:        int | None = None,
     ):
         self.provider    = provider.lower()
         self.model       = model
         self.temperature = temperature
+        # Optional deterministic sampling seed. When set, it is forwarded to
+        # the Ollama `options` block so that temperature>0 runs are reproducible
+        # per-seed (used by the multi-seed robustness study). Default None keeps
+        # the legacy request body byte-identical.
+        self.seed        = seed
 
         # Normalize host: ensure scheme is present
         # "ollama.aistations.org"        → "https://ollama.aistations.org"
@@ -299,15 +328,33 @@ class LLMBackend:
         import requests as _req
 
         url  = self.host.rstrip("/") + "/api/chat"
+        options = {"temperature": temperature}
+        if self.seed is not None:
+            options["seed"] = self.seed
+        # Same context size as the other clients of this server (OLLAMA_NUM_CTX): a request with another num_ctx
+        # makes Ollama reload the model, and without one qwen3-vl loads its 262k default context.
+        if os.getenv("OLLAMA_NUM_CTX"):
+            options["num_ctx"] = int(os.getenv("OLLAMA_NUM_CTX"))
+        # Opt-in streaming (OLLAMA_STREAM=1): keep the HTTP connection fed with
+        # tokens so a reverse-proxy IDLE timeout (e.g. ~125s on some gateways)
+        # cannot cut a long generation to an empty body. Needed for very large
+        # models (e.g. llama3.3:70b) whose single plan can exceed the idle limit.
+        if os.getenv("OLLAMA_STREAM", "0") == "1":
+            return self._chat_ollama_stream(url, messages, options)
+
         body = {
             "model":    self.model,
             "messages": messages,
             "stream":   False,      # single JSON response, no SSE
-            "options":  {"temperature": temperature},
+            "options":  options,
         }
 
         try:
-            resp = _req.post(url, json=body, timeout=120)
+            # Timeout is configurable via OLLAMA_TIMEOUT (seconds) so that a
+            # slow-but-valid generation under load is not silently truncated to
+            # an empty plan. Default 120 preserves legacy behaviour.
+            _timeout = float(os.getenv("OLLAMA_TIMEOUT", "120"))
+            resp = _req.post(url, json=body, timeout=_timeout)
         except _req.exceptions.ConnectionError as e:
             raise ConnectionRefusedError(
                 f"Cannot reach Ollama at {self.host}\n"
@@ -341,6 +388,33 @@ class LLMBackend:
         in_tok  = data.get("prompt_eval_count") or _approx_tokens(
             " ".join(m.get("content", "") for m in messages)
         )
+        out_tok = data.get("eval_count") or _approx_tokens(content)
+        return content, in_tok, out_tok
+
+    def _chat_ollama_stream(self, url, messages, options):
+        """Streaming /api/chat: accumulate NDJSON chunks. Continuous token flow
+        keeps a proxy idle-timeout from truncating long (e.g. 70B) generations."""
+        import requests as _req, json as _json
+        body = {"model": self.model, "messages": messages, "stream": True, "options": options}
+        _timeout = float(os.getenv("OLLAMA_TIMEOUT", "120"))
+        content, data = "", {}
+        with _req.post(url, json=body, stream=True, timeout=_timeout) as resp:
+            if resp.status_code != 200:
+                raise RuntimeError(f"Ollama HTTP {resp.status_code} (stream)\n  URL: {url}\n  Body: {resp.text[:200]}")
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                try:
+                    d = _json.loads(line)
+                except ValueError:
+                    continue
+                content += d.get("message", {}).get("content", "")
+                if d.get("done"):
+                    data = d
+        if not content:
+            raise RuntimeError(f"Ollama returned empty content (stream).\n  Model: {self.model}\n  Host: {self.host}")
+        in_tok  = data.get("prompt_eval_count") or _approx_tokens(
+            " ".join(m.get("content", "") for m in messages))
         out_tok = data.get("eval_count") or _approx_tokens(content)
         return content, in_tok, out_tok
 

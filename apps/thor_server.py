@@ -1119,6 +1119,9 @@ class ThorServer:
                     "receptacle":  o.get("receptacle", False),
                     "isOpen":      o.get("isOpen", False),
                     "isToggled":   o.get("isToggled", False),
+                    "isPickedUp":  o.get("isPickedUp", False),
+                    "parentReceptacles":   o.get("parentReceptacles") or [],
+                    "receptacleObjectIds": o.get("receptacleObjectIds") or [],
                     "distance":    round(o.get("distance", 999.0), 2),
                     "position":    o.get("position", {}),
                 }

@@ -482,3 +482,18 @@ class SimClient:
         elif self.current_scene:
             extra = f", scene={self.current_scene}"
         return f"SimClient({self.simulator_type}@{self.server_url} [{status}{extra}])"
+
+
+# ── Backward-compat shim ────────────────────────────────────────────────────
+# The evaluate harness (evaluate_sim.py, make_dataset_from_sim.py,
+# record_reference.py) predates the SimClient rename and still constructs
+# ``ThorClient(host=..., port=...)``. SimClient's __init__ now takes
+# ``server_url`` + ``simulator_type``; the old host/port form maps onto the
+# ``for_thor`` convention. This thin subclass keeps those scripts working
+# without touching them.
+class ThorClient(SimClient):
+    """Compat alias for the pre-rename iTHOR client (host/port constructor)."""
+
+    def __init__(self, host: str = "localhost", port: int = 5555, **kw):
+        super().__init__(server_url=f"tcp://{host}:{port}",
+                         simulator_type="thor", **kw)
