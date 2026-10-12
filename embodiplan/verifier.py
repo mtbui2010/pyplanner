@@ -1,10 +1,10 @@
-# pyplanner/verifier.py
+# embodiplan/verifier.py
 # ─────────────────────────────────────────────────────────────────────
-# Symbolic precondition verifier for GRACE planner.
+# Symbolic precondition verifier for the SAGE planner.
 #
 # A lightweight, rule-based, LLM-free checker that decides — given the
 # robot's symbolic state — whether the next action is admissible.
-# It mirrors the semantics documented in pyplanner/base.STEP_SCHEMA:
+# It mirrors the semantics documented in embodiplan/base.STEP_SCHEMA:
 #
 #     MoveTo  <room|furniture>  → sets state.arrived
 #     Find    <object>          → sets state.found (requires arrived)
@@ -26,7 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable
 
-from pyplanner.base import ROBOT_ACTIONS
+from embodiplan.base import ROBOT_ACTIONS
 
 
 # Subsets of actions sharing the same precondition pattern.
@@ -37,7 +37,7 @@ _FIND_ACTIONS      = {"Find"}
 _BODY_ACTIONS      = {"Sit", "LieOn"}
 _FREE_ACTIONS      = {"Serve", "Wait"}
 # Cross-domain object-treatment actions (ALFWorld heat/cool/clean), only present
-# in ROBOT_ACTIONS when opted in via PYPLANNER_EXTRA_ACTIONS. They act on the held
+# in ROBOT_ACTIONS when opted in via EMBODIPLAN_EXTRA_ACTIONS. They act on the held
 # object (precondition: holding) and leave it in hand.
 _TREAT_ACTIONS     = {"Heat", "Cool", "Clean"}
 

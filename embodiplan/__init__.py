@@ -1,12 +1,12 @@
-# pyplanner/__init__.py
+# embodiplan/__init__.py
 """
-PyPlanner — pluggable LLM task planner for household robotics.
+embodiplan — pluggable LLM task planner for household robotics.
 
 Usage
 -----
-    import pyplanner
+    import embodiplan
 
-    planner = pyplanner.direct(host="http://localhost:11434", model="llama3.2")
+    planner = embodiplan.direct(host="http://localhost:11434", model="llama3.2")
     steps, metrics = planner.generate_plan(
         task="make coffee",
         obs="Kitchen scene loaded.",
@@ -15,20 +15,21 @@ Usage
 
 Or via registry:
 
-    planner = pyplanner.get("CoT", host=..., model=...)
+    planner = embodiplan.get("CoT", host=..., model=...)
 
 Available methods
 -----------------
-    pyplanner.direct()        — single-call baseline
-    pyplanner.cot()           — Chain-of-Thought (reason then plan)
-    pyplanner.few_shot()      — Few-Shot CoT with built-in examples
-    pyplanner.self_refine()   — generate → critique → refine loop
-    pyplanner.react()         — ReAct (one action per LLM call)
-    pyplanner.hierarchical()  — sub-goals → action expansion
-    pyplanner.llm_router()    — local generate + external API verify
+    embodiplan.direct()        — single-call baseline
+    embodiplan.cot()           — Chain-of-Thought (reason then plan)
+    embodiplan.few_shot()      — Few-Shot CoT with built-in examples
+    embodiplan.self_refine()   — generate → critique → refine loop
+    embodiplan.react()         — ReAct (one action per LLM call)
+    embodiplan.hierarchical()  — sub-goals → action expansion
+    embodiplan.llm_router()    — local generate + external API verify
+    embodiplan.sage()          — SAGE: symbolic gate + local edit + hybrid memory
 """
 
-from pyplanner.base import (
+from embodiplan.base import (
     BasePlanner,
     PlanMetrics,
     LLMBackend,
@@ -39,33 +40,59 @@ from pyplanner.base import (
     DEFAULT_MODEL,
     DEFAULT_BACKEND,
 )
-from pyplanner.direct       import DirectPlanner
-from pyplanner.cot          import CoTPlanner
-from pyplanner.few_shot     import FewShotPlanner
-from pyplanner.self_refine  import SelfRefinePlanner
-from pyplanner.react        import ReActPlanner
-from pyplanner.hierarchical import HierarchicalPlanner
-from pyplanner.llm_router   import LLMRouterPlanner
-from pyplanner.my_planner   import HierarchicalFewShotPlanner
-from pyplanner.grace        import GRACEPlanner
-from pyplanner.llmp         import LLMPPlanner
-from pyplanner.saycan       import SayCanPlanner
+from embodiplan.direct       import DirectPlanner
+from embodiplan.cot          import CoTPlanner
+from embodiplan.few_shot     import FewShotPlanner
+from embodiplan.self_refine  import SelfRefinePlanner
+from embodiplan.react        import ReActPlanner
+from embodiplan.hierarchical import HierarchicalPlanner
+from embodiplan.llm_router   import LLMRouterPlanner
+from embodiplan.my_planner   import HierarchicalFewShotPlanner
+from embodiplan.sage         import SAGEPlanner
+from embodiplan.llmp         import LLMPPlanner
+from embodiplan.saycan       import SayCanPlanner
 
 __version__ = "0.2.0"
+
+import os as _os
+
+# Bundled data: the curated 38-task AI2-THOR benchmark with simulator-verified
+# reference plans (also the default seed pool for SAGE's memory).
+DATA_DIR   = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "data")
+GT_DATASET = _os.path.join(DATA_DIR, "eval_dataset_gt.json")
 __all__ = [
     "BasePlanner", "PlanMetrics", "LLMBackend", "parse_steps",
     "ROBOT_ACTIONS", "PROVIDER_MODELS", "DEFAULT_HOST", "DEFAULT_MODEL", "DEFAULT_BACKEND",
     "DirectPlanner", "CoTPlanner", "FewShotPlanner",
     "SelfRefinePlanner", "ReActPlanner", "HierarchicalPlanner", "LLMRouterPlanner",
-    "HierarchicalFewShotPlanner", "GRACEPlanner",
+    "HierarchicalFewShotPlanner", "SAGEPlanner", "GRACEPlanner",
     "direct", "cot", "few_shot", "self_refine", "react", "hierarchical", "llm_router",
-    "hierarchical_few_shot", "grace",
+    "hierarchical_few_shot", "sage", "grace",
     "get", "list_methods",
-    "REGISTRY",
+    "REGISTRY", "ALIASES", "DATA_DIR", "GT_DATASET",
 ]
 
+# Deprecated names kept so old configs and result files still resolve.
+GRACEPlanner = SAGEPlanner
+ALIASES: dict[str, str] = {"GRACE": "SAGE"}
+
+
+class _Registry(dict):
+    """dict that also resolves deprecated method names (ALIASES) on lookup,
+    without listing them when iterating."""
+
+    def __getitem__(self, key):
+        return super().__getitem__(ALIASES.get(key, key))
+
+    def __contains__(self, key):
+        return super().__contains__(ALIASES.get(key, key))
+
+    def get(self, key, default=None):
+        return super().get(ALIASES.get(key, key), default)
+
+
 # ── Registry ──────────────────────────────────────────────────────────
-REGISTRY: dict[str, type[BasePlanner]] = {
+REGISTRY: dict[str, type[BasePlanner]] = _Registry({
     "Direct":                DirectPlanner,
     "CoT":                   CoTPlanner,
     "Few-Shot CoT":          FewShotPlanner,
@@ -74,10 +101,10 @@ REGISTRY: dict[str, type[BasePlanner]] = {
     "Hierarchical":          HierarchicalPlanner,
     "LLM Router":            LLMRouterPlanner,
     "Hierarchical Few-Shot": HierarchicalFewShotPlanner,
-    "GRACE":                 GRACEPlanner,
+    "SAGE":                  SAGEPlanner,
     "LLM+P":                 LLMPPlanner,
     "SayCan":                SayCanPlanner,
-}
+})
 
 
 def get(
@@ -100,7 +127,7 @@ def get(
         A ready-to-use BasePlanner instance.
 
     Example:
-        planner = pyplanner.get("ReAct", model="llama3.2", max_steps=12)
+        planner = embodiplan.get("ReAct", model="llama3.2", max_steps=12)
     """
     cls = REGISTRY.get(name)
     if cls is None:
@@ -196,7 +223,7 @@ def llm_router(
     )
 
 
-def grace(
+def sage(
     host:           str  = DEFAULT_HOST,
     model:          str  = DEFAULT_MODEL,
     provider:       str  = DEFAULT_BACKEND,
@@ -207,12 +234,16 @@ def grace(
     live_path:      str  = "",
     use_chroma:     bool = False,
     chroma_path:    str  = "",
-) -> GRACEPlanner:
-    """GRACE: hierarchical + symbolic precondition verifier + hybrid memory
+) -> SAGEPlanner:
+    """SAGE: hierarchical + symbolic precondition verifier + hybrid memory
     retrieval + local sub-goal repair. The most complete planner."""
-    return GRACEPlanner(
+    return SAGEPlanner(
         host=host, model=model, provider=provider, api_key=api_key,
         top_k=top_k, max_refines=max_refines,
         gt_path=gt_path, live_path=live_path,
         use_chroma=use_chroma, chroma_path=chroma_path,
     )
+
+
+# Deprecated alias of sage().
+grace = sage

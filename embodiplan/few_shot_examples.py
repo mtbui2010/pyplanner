@@ -1,4 +1,4 @@
-# pyplanner/few_shot_examples.py
+# embodiplan/few_shot_examples.py
 #
 # Hand-crafted few-shot examples aligned with the current STEP_SCHEMA.
 # Each example covers: task → intent analysis → evaluated plan.

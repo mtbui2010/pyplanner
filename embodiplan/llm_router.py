@@ -21,11 +21,11 @@ import time
 
 import requests
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA,
     BasePlanner, PlanMetrics, parse_steps,
 )
-from pyplanner.direct import DirectPlanner
+from embodiplan.direct import DirectPlanner
 
 # ── External API defaults ──
 OPENAI_URL  = "https://api.openai.com/v1/chat/completions"

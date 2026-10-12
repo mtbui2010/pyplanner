@@ -1,2 +1,8 @@
 .vscode
 __pycache__
+thor_app.log
+thor_server.log
+*.bak-*
+*.egg-info/
+dist/
+build/

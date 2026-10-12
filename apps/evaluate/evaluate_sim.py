@@ -52,12 +52,12 @@ from typing import Any
 # ── Resolve paths ─────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
 try:
-    import pyplanner
+    import embodiplan
 except ModuleNotFoundError:
-    sys.path.insert(0, os.path.join(_HERE, "..", "pyplanner"))
-    import pyplanner
+    sys.path.insert(0, os.path.join(_HERE, "..", "embodiplan"))
+    import embodiplan
 
-from pyplanner import REGISTRY, DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+from embodiplan import REGISTRY, DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
 
 try:
     from thor_app.sim_client import ThorClient
@@ -290,7 +290,7 @@ def execute_plan_in_sim(
     reported; ``replan_ok`` records whether the task still completed afterwards.
 
     When ``verify_gate`` is True the function becomes VERIFY-BEFORE-EXECUTE: a
-    running symbolic state (pyplanner.verifier.SymbolicState) is replayed from
+    running symbolic state (embodiplan.verifier.SymbolicState) is replayed from
     the steps that have ALREADY executed successfully, and every upcoming step is
     checked with ``verify_step`` BEFORE it is sent to the simulator. A step the
     verifier predicts will violate its preconditions is never dispatched to the
@@ -334,7 +334,7 @@ def execute_plan_in_sim(
     _vsim = _vverify = _vnstep = _vnplan = None
     if verify_gate:
         try:
-            from pyplanner.verifier import (
+            from embodiplan.verifier import (
                 simulate as _vsim,
                 verify_step as _vverify,
                 normalize_step as _vnstep,
@@ -633,7 +633,7 @@ def evaluate_sample_sim(
         res.executability = score_executability(steps)
         res.precondition  = score_precondition(steps)
         try:  # strict, verifier-grounded precondition (mirrors the plan-quality grid)
-            from pyplanner.verifier import normalize_plan as _nplan, simulate as _vsim
+            from embodiplan.verifier import normalize_plan as _nplan, simulate as _vsim
             _rep = _vsim(_nplan(steps), visible_objects=sample["visible_objects"],
                          stop_on_error=False)
             res.precondition_strict = round(max(0.0, 1.0 - len(_rep.violations) / len(steps)), 4) if steps else 0.0
@@ -870,28 +870,30 @@ def run_sim_evaluation(
         planners  = [stub]
         print("🔧  Dry-run LLM mode")
     else:
-        # GRACE ablation/variant flags — mirrors make_grace() in
-        # paper_grace/scripts/run_benchmark.py so that sim-mode results are
-        # directly comparable to the plan-quality grid. GRACE-Fixed is the
+        # SAGE ablation/variant flags — mirrors make_sage() in
+        # task_planning_manuscripts/scripts/run_benchmark.py so that sim-mode results are
+        # directly comparable to the plan-quality grid. SAGE-Fixed is the
         # safe_refine variant that is the paper's headline method.
-        _GRACE_FLAGS = {
-            "GRACE":            dict(enable_verifier=True,  enable_local_repair=True,  enable_memory=True,  safe_refine=False),
-            "GRACE-Fixed":      dict(enable_verifier=True,  enable_local_repair=True,  enable_memory=True,  safe_refine=True),
-            "GRACE-NoVerifier": dict(enable_verifier=False, enable_local_repair=True,  enable_memory=True,  safe_refine=False),
-            "GRACE-NoRepair":   dict(enable_verifier=True,  enable_local_repair=False, enable_memory=True,  safe_refine=False),
-            "GRACE-NoMemory":   dict(enable_verifier=True,  enable_local_repair=True,  enable_memory=False, safe_refine=False),
+        # Pre-rename "GRACE*" names are accepted and mapped to "SAGE*".
+        _SAGE_FLAGS = {
+            "SAGE":            dict(enable_verifier=True,  enable_local_repair=True,  enable_memory=True,  safe_refine=False),
+            "SAGE-Fixed":      dict(enable_verifier=True,  enable_local_repair=True,  enable_memory=True,  safe_refine=True),
+            "SAGE-NoVerifier": dict(enable_verifier=False, enable_local_repair=True,  enable_memory=True,  safe_refine=False),
+            "SAGE-NoRepair":   dict(enable_verifier=True,  enable_local_repair=False, enable_memory=True,  safe_refine=False),
+            "SAGE-NoMemory":   dict(enable_verifier=True,  enable_local_repair=True,  enable_memory=False, safe_refine=False),
         }
-        # GT file used to seed GRACE memory (same 38-task curated set).
+        # GT file used to seed SAGE memory (same 38-task curated set).
         _gt = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
             os.path.abspath(__file__)))), "eval_dataset_gt.json")
         for name in methods:
             try:
-                if name.startswith("GRACE"):
-                    from pyplanner.grace import GRACEPlanner
-                    flags = _GRACE_FLAGS.get(name)
+                if name.startswith(("SAGE", "GRACE")):
+                    from embodiplan.sage import SAGEPlanner
+                    variant = "SAGE" + name[5:] if name.startswith("GRACE") else name
+                    flags = _SAGE_FLAGS.get(variant)
                     if flags is None:
-                        raise ValueError(f"unknown GRACE variant '{name}'")
-                    p = GRACEPlanner(
+                        raise ValueError(f"unknown SAGE variant '{name}'")
+                    p = SAGEPlanner(
                         host=host, model=model, provider=provider, api_key=api_key,
                         gt_path=_gt if flags["enable_memory"] else "",
                         live_path="",
@@ -899,7 +901,7 @@ def run_sim_evaluation(
                     )
                 else:
                     kwargs = {**method_kwargs.get(name, {}), "provider": provider, "api_key": api_key}
-                    p = pyplanner.get(name, host=host, model=model, **kwargs)
+                    p = embodiplan.get(name, host=host, model=model, **kwargs)
                 planners.append(p)
                 print(f"  ✅  {name:15}  ({provider}/{model})")
             except Exception as e:
@@ -975,7 +977,7 @@ def main():
     all_methods = list(REGISTRY.keys())
 
     parser = argparse.ArgumentParser(
-        description="Evaluate pyplanner methods by executing plans in AI2-THOR",
+        description="Evaluate embodiplan methods by executing plans in AI2-THOR",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--dataset",   default="eval_dataset.json")
@@ -1037,7 +1039,7 @@ def main():
         print(f"   ✅  Generated {len(samples)} samples → {args.dataset}")
 
     print(f"\n{'═'*65}")
-    print(f"  PyPlanner Simulation Evaluation")
+    print(f"  embodiplan Simulation Evaluation")
     print(f"{'═'*65}")
     print(f"  Methods    : {methods}")
     print(f"  Provider   : {args.provider}  |  Model: {args.model}")

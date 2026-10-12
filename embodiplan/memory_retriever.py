@@ -1,6 +1,6 @@
-# pyplanner/memory_retriever.py
+# embodiplan/memory_retriever.py
 # ─────────────────────────────────────────────────────────────────────
-# Hybrid retrieval memory for GRACE.
+# Hybrid retrieval memory for SAGE.
 #
 # Two complementary sources feed a single query interface:
 #
@@ -30,7 +30,7 @@ import time
 from dataclasses import dataclass, asdict
 from typing import Iterable, NamedTuple
 
-from pyplanner.verifier import normalize_plan
+from embodiplan.verifier import normalize_plan
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ def load_seed_examples(gt_path: str) -> list[RetrievedExample]:
     """Parse eval_dataset_gt.json into RetrievedExample seed entries.
 
     The GT file uses legacy action names (Navigate, Grab); we normalize
-    them through pyplanner.verifier.normalize_plan() before serializing
+    them through embodiplan.verifier.normalize_plan() before serializing
     so seed examples are immediately usable as few-shot context.
     """
     if not os.path.exists(gt_path):
@@ -105,7 +105,7 @@ def load_seed_examples(gt_path: str) -> list[RetrievedExample]:
             continue
         # ref is in the GT-format dict {action, object, target, reason};
         # collapse target into object when target is non-empty (matches
-        # canonical schema used by pyplanner for Place steps).
+        # canonical schema used by embodiplan for Place steps).
         canonical = []
         for st in ref:
             action = st.get("action", "")
@@ -135,7 +135,7 @@ class MemoryRetrieverConfig:
     live_path:      str  = ""
     use_chroma:     bool = False
     chroma_path:    str  = ""
-    chroma_collection: str = "grace_memory"
+    chroma_collection: str = "grace_memory"  # pre-rename name, kept so existing stores load
     top_k:          int  = 3
 
 

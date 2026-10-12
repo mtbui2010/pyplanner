@@ -49,14 +49,14 @@ except ImportError:
     from thor_app.sim_client import ThorClient
 
 try:
-    import pyplanner
-    from pyplanner.base import ROBOT_ACTIONS
-    from pyplanner import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+    import embodiplan
+    from embodiplan.base import ROBOT_ACTIONS
+    from embodiplan import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
 except ImportError:
-    sys.path.insert(0, os.path.join(_HERE, "..", "pyplanner"))
-    import pyplanner
-    from pyplanner import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
-    from pyplanner.base import ROBOT_ACTIONS
+    sys.path.insert(0, os.path.join(_HERE, "..", "embodiplan"))
+    import embodiplan
+    from embodiplan import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+    from embodiplan.base import ROBOT_ACTIONS
 
 VALID_ACTIONS = set(ROBOT_ACTIONS)
 
@@ -273,7 +273,7 @@ def generate_llm_reference_steps(
     Ask LLM to write reference_steps using the real scene object list.
     Returns (steps, raw_response).
     """
-    from pyplanner.base import LLMBackend, parse_steps
+    from embodiplan.base import LLMBackend, parse_steps
 
     # Build a rich object description for the prompt
     obj_lines = []

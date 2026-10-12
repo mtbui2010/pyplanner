@@ -61,14 +61,14 @@ except ImportError:
     from thor_app.sim_client import ThorClient
 
 try:
-    import pyplanner
-    from pyplanner import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
-    from pyplanner.base import parse_steps
+    import embodiplan
+    from embodiplan import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+    from embodiplan.base import parse_steps
 except ImportError:
-    sys.path.insert(0, os.path.join(_HERE, "..", "pyplanner"))
-    import pyplanner
-    from pyplanner import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
-    from pyplanner.base import parse_steps
+    sys.path.insert(0, os.path.join(_HERE, "..", "embodiplan"))
+    import embodiplan
+    from embodiplan import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+    from embodiplan.base import parse_steps
 
 try:
     from make_dataset import SAMPLES_RAW

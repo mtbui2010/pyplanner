@@ -1,14 +1,33 @@
 [build-system]
-requires      = ["setuptools>=68", "wheel"]
+requires      = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name        = "pyplanner"
-version     = "0.1.0"
-description = "Pluggable LLM task planner for household robotics (AI2-THOR + Ollama)"
+name        = "embodiplan"
+version     = "0.2.0"
+description = "Pluggable LLM task planners for embodied household robots, with a zero-token symbolic verifier and the SAGE planner"
 readme      = "README.md"
 requires-python = ">=3.10"
-license     = { text = "MIT" }
+license     = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Trung Minh Bui", email = "minhtrung@keti.re.kr" },
+]
+keywords = [
+    "llm", "task-planning", "embodied-ai", "robotics", "ai2-thor",
+    "symbolic-verification", "planning", "household-robot",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 
 dependencies = [
     "ollama>=0.2.0",
@@ -16,8 +35,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "ruff"]
+memory = ["chromadb"]          # Chroma backend for SAGE's hybrid memory (Jaccard fallback otherwise)
+llmp   = ["pyperplan"]         # classical planner for the LLM+P baseline
+all    = ["chromadb", "pyperplan"]
+dev    = ["pytest", "black", "ruff", "build", "twine"]
+
+[project.urls]
+Homepage   = "https://github.com/mtbui2010/embodiplan"
+Repository = "https://github.com/mtbui2010/embodiplan"
+Paper      = "https://github.com/mtbui2010/sage_release"
 
 [tool.setuptools.packages.find]
 where   = ["."]
-include = ["pyplanner*"]
+include = ["embodiplan*"]
+
+[tool.setuptools.package-data]
+embodiplan = ["data/*.json"]

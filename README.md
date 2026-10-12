@@ -1,4 +1,4 @@
-# PyPlanner · Household Robot Task Planning
+# embodiplan · Household Robot Task Planning
 
 <div align="center">
 
@@ -16,12 +16,12 @@
 
 ## What this project does
 
-PyPlanner is a **Python package** that takes a natural-language task description and a list of visible objects, calls an LLM using one of seven planning algorithms, and returns a structured action plan ready to be executed by a household robot.
+embodiplan is a **Python package** that takes a natural-language task description and a list of visible objects, calls an LLM using one of eleven planning algorithms, and returns a structured action plan ready to be executed by a household robot.
 
 ```python
-import pyplanner
+import embodiplan
 
-planner = pyplanner.cot(provider="openai", model="gpt-4o-mini", api_key="sk-...")
+planner = embodiplan.cot(provider="openai", model="gpt-4o-mini", api_key="sk-...")
 
 steps, metrics = planner.generate_plan(
     task="make a cup of coffee",
@@ -41,7 +41,7 @@ print(metrics.to_dict())
 #  'total_tokens': 580, 'num_steps': 5, 'parse_ok': True}
 ```
 
-The companion **thor_app** connects PyPlanner to [AI2-THOR](https://ai2thor.allenai.org/), providing a full loop: *natural language prompt → LLM plan → robot execution → goal verification → quantitative evaluation*.
+The companion **thor_app** connects embodiplan to [AI2-THOR](https://ai2thor.allenai.org/), providing a full loop: *natural language prompt → LLM plan → robot execution → goal verification → quantitative evaluation*.
 
 ---
 
@@ -60,7 +60,7 @@ The companion **thor_app** connects PyPlanner to [AI2-THOR](https://ai2thor.alle
 ## Repository layout
 
 ```
-├── pyplanner/                  ← installable Python package (pip install -e ./pyplanner)
+├── embodiplan/                  ← installable Python package (pip install -e ./embodiplan)
 │   ├── __init__.py             ← public API: get(), list_methods(), factory functions
 │   ├── base.py                 ← BasePlanner, PlanMetrics, LLMBackend
 │   ├── direct.py               ← Method 1: Direct (baseline, 1 call)
@@ -86,9 +86,9 @@ The companion **thor_app** connects PyPlanner to [AI2-THOR](https://ai2thor.alle
 
 ---
 
-## PyPlanner — the package
+## embodiplan — the package
 
-### Seven planning methods, one interface
+### Eleven planning methods, one interface
 
 | # | Method | LLM calls | Strategy | When to use |
 |---|---|---|---|---|
@@ -99,6 +99,10 @@ The companion **thor_app** connects PyPlanner to [AI2-THOR](https://ai2thor.alle
 | 5 | **ReAct** | N | Thought + Action interleaved | Step-by-step grounding |
 | 6 | **Hierarchical** | 1 + N | Decompose to sub-goals, expand each | Complex multi-phase tasks |
 | 7 | **LLM Router** | 2 | Local generates, frontier API verifies | Best of both, cost-efficient |
+| 8 | **Hierarchical Few-Shot** | 1 + N | Hierarchical + retrieved few-shot examples | Strong hierarchical baseline |
+| 9 | **SAGE** | 1 + N (+R) | Hierarchical + zero-token symbolic gate + sub-goal-local repair + hybrid memory | Valid plans, cheap recovery from failures |
+| 10 | **LLM+P** | 1 | LLM writes a PDDL problem, a classical planner solves it (`pip install embodiplan[llmp]`) | Published baseline |
+| 11 | **SayCan** | N | Greedy step-by-step: LLM value × verifier affordance | Published baseline |
 
 Every method shares the same interface and returns the same `PlanMetrics` object.
 
@@ -106,28 +110,28 @@ Every method shares the same interface and returns the same `PlanMetrics` object
 
 ```python
 # Ollama (local, free)
-p = pyplanner.get("CoT", provider="ollama",    model="llama3.2",
+p = embodiplan.get("CoT", provider="ollama",    model="llama3.2",
                           host="http://localhost:11434")
 
 # OpenAI
-p = pyplanner.get("CoT", provider="openai",    model="gpt-4o-mini",
+p = embodiplan.get("CoT", provider="openai",    model="gpt-4o-mini",
                           api_key="sk-...")
 
 # Anthropic
-p = pyplanner.get("CoT", provider="anthropic", model="claude-haiku-4-5-20251001",
+p = embodiplan.get("CoT", provider="anthropic", model="claude-haiku-4-5-20251001",
                           api_key="sk-ant-...")
 ```
 
 Or via shorthand factories:
 
 ```python
-pyplanner.direct()
-pyplanner.cot()
-pyplanner.few_shot()
-pyplanner.self_refine(max_iterations=3)
-pyplanner.react(max_steps=12)
-pyplanner.hierarchical()
-pyplanner.llm_router(verifier_backend="anthropic", anthropic_api_key="sk-ant-...")
+embodiplan.direct()
+embodiplan.cot()
+embodiplan.few_shot()
+embodiplan.self_refine(max_iterations=3)
+embodiplan.react(max_steps=12)
+embodiplan.hierarchical()
+embodiplan.llm_router(verifier_backend="anthropic", anthropic_api_key="sk-ant-...")
 ```
 
 ### Metrics every call returns
@@ -173,8 +177,8 @@ new_steps, m = planner.replan(
 ### Setup
 
 ```bash
-# 1. Install pyplanner
-pip install -e ./pyplanner
+# 1. Install embodiplan
+pip install -e ./embodiplan
 
 # 2. Install application dependencies
 pip install -r ./thor_app/requirements.txt
@@ -189,7 +193,7 @@ streamlit run app.py
 ```
 
 > **Windows/WSL note:** if `pip install -e` fails, `app.py` contains an automatic
-> `sys.path` fallback that resolves pyplanner at runtime without installation.
+> `sys.path` fallback that resolves embodiplan at runtime without installation.
 
 ---
 
@@ -255,7 +259,7 @@ python evaluate.py --dry-run
 
 ## Design decisions
 
-**Object name resolution** — AI2-THOR uses CamelCase (`CoffeeMachine`); LLMs generate snake_case (`coffee_machine`). PyPlanner resolves this at execution time via a 4-step fuzzy matcher: exact match → CamelCase conversion → substring match → reverse substring. Applied to both LLM plans and direct user commands.
+**Object name resolution** — AI2-THOR uses CamelCase (`CoffeeMachine`); LLMs generate snake_case (`coffee_machine`). embodiplan resolves this at execution time via a 4-step fuzzy matcher: exact match → CamelCase conversion → substring match → reverse substring. Applied to both LLM plans and direct user commands.
 
 **Simulator as ground truth** — `record_reference.py` executes steps and records only those that succeed. This avoids the fundamental issue where LLM-generated reference plans may describe physically impossible or incorrectly sequenced actions.
 
@@ -268,14 +272,14 @@ python evaluate.py --dry-run
 ## Quick performance comparison
 
 ```python
-import pyplanner
+import embodiplan
 
 task  = "boil water in a pot on the stove"
 obs   = "Kitchen. Stove visible. Pot on counter. Sink accessible."
 vis   = ["Pot", "StoveBurner", "Sink", "Faucet", "CounterTop"]
 
-for name in pyplanner.REGISTRY:
-    p = pyplanner.get(name, model="llama3.2")
+for name in embodiplan.REGISTRY:
+    p = embodiplan.get(name, model="llama3.2")
     steps, m = p.generate_plan(task, obs, vis)
     print(f"{name:15} {m.latency_s:5.1f}s  "
           f"{m.llm_calls} call(s)  {m.num_steps} steps  {m.total_tokens} tok")
@@ -296,8 +300,21 @@ LLM Router       4.3s  2 call(s)  6 steps   960 tok
 ## Install
 
 ```bash
-pip install -e ./pyplanner
+pip install embodiplan              # core
+pip install "embodiplan[memory]"    # + Chroma backend for SAGE's memory
+pip install "embodiplan[llmp]"      # + pyperplan for the LLM+P baseline
+pip install -e ./embodiplan         # from a source checkout
 ```
+
+The curated 38-task AI2-THOR benchmark ships with the package:
+
+```python
+import embodiplan
+
+planner = embodiplan.sage(model="qwen2.5:7b", gt_path=embodiplan.GT_DATASET)
+```
+
+`SAGE` was called `GRACE` in earlier versions; the old registry key `"GRACE"` still works.
 
 **Core requirements:** Python 3.10+, `ollama>=0.2.0`, `requests>=2.31.0`
 

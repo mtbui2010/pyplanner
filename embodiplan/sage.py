@@ -1,6 +1,7 @@
-# pyplanner/grace.py
+# embodiplan/sage.py
 # ─────────────────────────────────────────────────────────────────────
-# GRACE — Grounded Repair-and-Critique Embodied planner.
+# SAGE — Symbolic Action-Gating and Editing planner
+# (formerly GRACE; the "GRACE" registry name is kept as an alias).
 #
 # Three integrated components:
 #
@@ -9,19 +10,19 @@
 #       HierarchicalFewShotPlanner but every (sub-goal → steps)
 #       expansion is wrapped by:
 #
-#   2.  Symbolic precondition verifier (pyplanner.verifier).  The
+#   2.  Symbolic precondition verifier (embodiplan.verifier).  The
 #       verifier simulates the candidate sub-plan against the running
 #       SymbolicState.  If any precondition is violated, a single
 #       refinement pass is issued to the LLM with typed violation
 #       feedback (no expensive Self-Refine loop).
 #
-#   3.  Hybrid memory-augmented retrieval (pyplanner.memory_retriever).
+#   3.  Hybrid memory-augmented retrieval (embodiplan.memory_retriever).
 #       The retriever is seeded from eval_dataset_gt.json AND accumulates
 #       successful runtime episodes, so the few-shot context strengthens
 #       over time.
 #
 # Repair (.replan):
-#   Unlike all other pyplanner methods, GRACE does NOT re-explain the
+#   Unlike all other embodiplan methods, SAGE does NOT re-explain the
 #   full task on failure.  It identifies which sub-goal the failed step
 #   belongs to, and asks the LLM to regenerate ONLY the suffix of that
 #   sub-goal — given the actual state at the failure point.  Sub-goals
@@ -42,16 +43,16 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA,
     BasePlanner, PlanMetrics, parse_steps,
     DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND,
 )
-from pyplanner.verifier import (
+from embodiplan.verifier import (
     SymbolicState, simulate, normalize_plan,
     format_violations_for_llm, DEFAULT_CONTAINERS,
 )
-from pyplanner.memory_retriever import (
+from embodiplan.memory_retriever import (
     MemoryRetriever, MemoryRetrieverConfig, RetrievedExample,
     format_examples_block,
 )
@@ -182,7 +183,7 @@ def _flatten(blocks: list[_SubgoalBlock]) -> list[dict]:
 
     Pick/Place are never dropped (they have side-effects on holding/arrived).
     """
-    from pyplanner.verifier import SymbolicState, _apply  # local import — keep verifier optional
+    from embodiplan.verifier import SymbolicState, _apply  # local import — keep verifier optional
     out: list[dict] = []
     state = SymbolicState()
     for b in blocks:
@@ -210,12 +211,12 @@ def _flatten(blocks: list[_SubgoalBlock]) -> list[dict]:
 
 
 # ─────────────────────────────────────────────────────────────────────
-# GRACEPlanner
+# SAGEPlanner
 # ─────────────────────────────────────────────────────────────────────
-class GRACEPlanner(BasePlanner):
-    name        = "GRACE"
+class SAGEPlanner(BasePlanner):
+    name        = "SAGE"
     description = (
-        "Grounded Repair-and-Critique Embodied planner: hierarchical "
+        "Symbolic Action-Gating and Editing planner: hierarchical "
         "decomposition + symbolic precondition verifier + hybrid memory "
         "retrieval (seed GT + live episodes) + suffix-only sub-goal repair."
     )
@@ -391,7 +392,7 @@ class GRACEPlanner(BasePlanner):
             total_in  += in_d
             total_out += out_d
         except Exception as e:
-            print(f"[GRACE] Decompose error: {e} — falling back to single sub-goal")
+            print(f"[SAGE] Decompose error: {e} — falling back to single sub-goal")
             subgoals = [task]
 
         if not subgoals:
@@ -418,7 +419,7 @@ class GRACEPlanner(BasePlanner):
                 total_in  += in_e
                 total_out += out_e
             except Exception as e:
-                print(f"[GRACE] Expand error on '{sg}': {e}")
+                print(f"[SAGE] Expand error on '{sg}': {e}")
                 steps = []
 
             # Stream the expanded steps for this sub-goal (post-expansion, so a
@@ -466,7 +467,7 @@ class GRACEPlanner(BasePlanner):
                                                 "steps": _ser_steps(steps)})
                             except Exception: pass
                     except Exception as e:
-                        print(f"[GRACE] Refine error on '{sg}': {e}")
+                        print(f"[SAGE] Refine error on '{sg}': {e}")
                         break
                     attempt += 1
 
@@ -518,7 +519,7 @@ class GRACEPlanner(BasePlanner):
         self._last_blocks = blocks
         self._last_task   = task
         print(
-            f"[GRACE] subgoals={len(blocks)} steps={len(flat)} "
+            f"[SAGE] subgoals={len(blocks)} steps={len(flat)} "
             f"refines={refines} latency={metrics.latency_s:.1f}s "
             f"retrieved={retrieved_tasks}"
         )
@@ -590,7 +591,7 @@ class GRACEPlanner(BasePlanner):
             )
             suffix = normalize_plan(parse_steps(raw))
         except Exception as e:
-            print(f"[GRACE] Local repair failed: {e}")
+            print(f"[SAGE] Local repair failed: {e}")
             suffix, in_tok, out_tok = [], 0, 0
 
         # Verify the suffix; one refinement pass if invalid.
@@ -613,7 +614,7 @@ class GRACEPlanner(BasePlanner):
                     if not (self.safe_refine and not new_suffix):
                         suffix = new_suffix
                 except Exception as e:
-                    print(f"[GRACE] Repair-refine error: {e}")
+                    print(f"[SAGE] Repair-refine error: {e}")
 
         # Append the untouched future sub-goals so the executor still
         # has the rest of the plan.  If we don't have any, just return
@@ -640,7 +641,7 @@ class GRACEPlanner(BasePlanner):
             },
         )
         print(
-            f"[GRACE] local_repair sg='{current_sg}' suffix={len(suffix)} "
+            f"[SAGE] local_repair sg='{current_sg}' suffix={len(suffix)} "
             f"future={len(remaining_after)} refines={refines} "
             f"latency={metrics.latency_s:.1f}s"
         )
@@ -720,4 +721,4 @@ class GRACEPlanner(BasePlanner):
             self.memory.add_episode(task=task, plan=plan, success=success)
 
 
-__all__ = ["GRACEPlanner"]
+__all__ = ["SAGEPlanner"]

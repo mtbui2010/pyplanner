@@ -14,9 +14,9 @@
 
 import re
 import time
-from pyplanner.few_shot_examples import FEW_SHOT_EXAMPLES
+from embodiplan.few_shot_examples import FEW_SHOT_EXAMPLES
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA, ROBOT_ACTIONS,
     BasePlanner, PlanMetrics, parse_steps,
 )

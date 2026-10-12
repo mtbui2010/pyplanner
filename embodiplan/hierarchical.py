@@ -16,7 +16,7 @@ import json
 import re
 import time
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA,
     BasePlanner, PlanMetrics, parse_steps,
 )

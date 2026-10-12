@@ -1,8 +1,8 @@
-# pyplanner/llmp.py
+# embodiplan/llmp.py
 # ─────────────────────────────────────────────────────────────────────
 # LLM+P — the classic "LLM translates to PDDL, a classical planner solves"
 # baseline (Liu et al., 2023, arXiv:2304.11477), implemented honestly on the
-# pyplanner action vocabulary.
+# embodiplan action vocabulary.
 #
 # Pipeline per task (.generate_plan):
 #   1. NL  -> PDDL problem  (ONE LLM call).  The PDDL *domain* is FIXED and
@@ -30,7 +30,7 @@ import re
 import tempfile
 import time
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA,
     BasePlanner, PlanMetrics, parse_steps,
 )
@@ -38,8 +38,8 @@ from pyplanner.base import (
 # ─────────────────────────────────────────────────────────────────────
 # Locate the fixed PDDL domain.
 # Resolution order:
-#   1. $PYPLANNER_PDDL_DOMAIN (explicit override)
-#   2. <pyplanner repo root>/pddl/household_domain.pddl   (installed location)
+#   1. $EMBODIPLAN_PDDL_DOMAIN (explicit override)
+#   2. <embodiplan repo root>/pddl/household_domain.pddl   (installed location)
 #   3. embedded fallback string (so the module is self-contained even if the
 #      .pddl file was not copied alongside the package)
 # ─────────────────────────────────────────────────────────────────────
@@ -103,13 +103,13 @@ _EMBEDDED_DOMAIN = """\
 def load_domain(path: str | None = None) -> str:
     """Return the fixed domain PDDL string.
 
-    Prefers $PYPLANNER_PDDL_DOMAIN, then the on-disk data file, then the
+    Prefers $EMBODIPLAN_PDDL_DOMAIN, then the on-disk data file, then the
     embedded fallback.  Never raises — a missing file degrades to embedded.
     """
     candidates = []
     if path:
         candidates.append(path)
-    env_p = os.getenv("PYPLANNER_PDDL_DOMAIN", "")
+    env_p = os.getenv("EMBODIPLAN_PDDL_DOMAIN") or os.getenv("PYPLANNER_PDDL_DOMAIN", "")
     if env_p:
         candidates.append(env_p)
     candidates.append(_DEFAULT_DOMAIN_PATH)

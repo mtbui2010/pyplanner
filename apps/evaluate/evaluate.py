@@ -1,7 +1,7 @@
 """
 evaluate.py
 ===========
-Run all (or selected) pyplanner methods against eval_dataset.json,
+Run all (or selected) embodiplan methods against eval_dataset.json,
 compute quantitative metrics for each sample, and save results to CSV.
 
 Metrics computed per (method × sample):
@@ -72,15 +72,15 @@ import traceback
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
-# ── Resolve pyplanner (works with or without pip install) ─────────────
+# ── Resolve embodiplan (works with or without pip install) ─────────────
 try:
-    import pyplanner
+    import embodiplan
 except ModuleNotFoundError:
     _here = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, os.path.join(_here, "..", "pyplanner"))
-    import pyplanner
+    sys.path.insert(0, os.path.join(_here, "..", "embodiplan"))
+    import embodiplan
 
-from pyplanner import REGISTRY, DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+from embodiplan import REGISTRY, DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
 
 # ── Import scoring helpers from make_dataset ──────────────────────────
 try:
@@ -311,7 +311,7 @@ class _DryRunPlanner:
     model       = "none"
 
     def generate_plan(self, task, obs, visible_objects):
-        from pyplanner.base import PlanMetrics
+        from embodiplan.base import PlanMetrics
         steps = [
             {"action": "MoveTo", "object": visible_objects[0] if visible_objects else "object",
              "target": "", "reason": "stub"},
@@ -324,7 +324,7 @@ class _DryRunPlanner:
         return steps, m
 
     def replan(self, task, completed, failed_step, failure_reason, obs, visible_objects):
-        from pyplanner.base import PlanMetrics
+        from embodiplan.base import PlanMetrics
         steps = [{"action": "MoveTo", "object": "sink", "target": "", "reason": "stub replan"}]
         m = PlanMetrics(method=self.name, model=self.model, backend=self.provider,
                         latency_s=0.01, llm_calls=1, input_tokens=60, output_tokens=20,
@@ -492,7 +492,7 @@ def run_evaluation(
             kwargs = method_kwargs.get(name, {})
             kwargs.update(provider=provider, api_key=api_key)
             try:
-                p = pyplanner.get(name, host=host, model=model, **kwargs)
+                p = embodiplan.get(name, host=host, model=model, **kwargs)
                 planners.append(p)
                 print(f"  ✅  {name:15}  ({provider}/{model})")
             except Exception as e:
@@ -609,7 +609,7 @@ def main():
     all_methods = list(REGISTRY.keys())
 
     parser = argparse.ArgumentParser(
-        description="Evaluate pyplanner methods quantitatively",
+        description="Evaluate embodiplan methods quantitatively",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--dataset",  default="eval_dataset.json",
@@ -665,7 +665,7 @@ def main():
             sys.exit(1)
 
     print(f"\n{'═'*60}")
-    print(f"  PyPlanner Evaluation")
+    print(f"  embodiplan Evaluation")
     print(f"{'═'*60}")
     print(f"  Methods  : {methods}")
     print(f"  Provider : {args.provider}")

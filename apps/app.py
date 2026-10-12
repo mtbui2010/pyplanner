@@ -3,7 +3,7 @@
 # Requires: python thor_server.py running in another terminal
 #
 # Setup (run once):
-#   pip install -e ../pyplanner
+#   pip install -e ../embodiplan
 # Or if pip install is not possible, the path-fallback below handles it automatically.
 
 from __future__ import annotations
@@ -12,22 +12,22 @@ import os
 import time
 import html
 
-# ── Auto-resolve pyplanner package ────────────────────────────────────
+# ── Auto-resolve embodiplan package ────────────────────────────────────
 # Works whether installed via pip OR run directly from the project folder.
 try:
-    import pyplanner
+    import embodiplan
 except ModuleNotFoundError:
     _here   = os.path.dirname(os.path.abspath(__file__))           # thor_app/
     _parent = os.path.dirname(_here)                                # project/
-    _pkg    = os.path.join(_parent, "pyplanner")                   # project/pyplanner/
+    _pkg    = os.path.join(_parent, "embodiplan")                   # project/embodiplan/
     if os.path.isdir(_pkg):
         sys.path.insert(0, _pkg)
-        import pyplanner
+        import embodiplan
     else:
         raise ImportError(
-            "Cannot find pyplanner package.\n"
+            "Cannot find embodiplan package.\n"
             f"Looked in: {_pkg}\n"
-            "Run:  pip install -e ../pyplanner"
+            "Run:  pip install -e ../embodiplan"
         )
 # ──────────────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ def _save_env(data: dict[str, str]) -> None:
         f.writelines(out)
 
 _env_vals = _load_env()
-# Also push loaded keys into os.environ so pyplanner backends pick them up
+# Also push loaded keys into os.environ so embodiplan backends pick them up
 for _k, _v in _env_vals.items():
     if _k not in os.environ:
         os.environ[_k] = _v
@@ -93,7 +93,7 @@ except ImportError:
     from apps.sim_client import SimClient as ThorClient
     from apps import prothor_knowledge
 
-from pyplanner import REGISTRY, DEFAULT_HOST, PROVIDER_MODELS, DEFAULT_BACKEND
+from embodiplan import REGISTRY, DEFAULT_HOST, PROVIDER_MODELS, DEFAULT_BACKEND
 
 # ══════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
@@ -1522,7 +1522,7 @@ with st.sidebar:
             kwargs["verifier_model"]     = router_model
             kwargs["openai_api_key"]     = router_openai_key
             kwargs["gemini_api_key"]     = router_gemini_key
-        planner = pyplanner.get(
+        planner = embodiplan.get(
             selected_method,
             host     = ollama_host,
             model    = selected_model,
@@ -1649,7 +1649,7 @@ with col_cam:
     st.subheader("⌨️ Direct Commands")
     st.caption("One command per line: `Action Object [→ Target]`  ·  Ctrl+Enter to execute")
 
-    from pyplanner.base import ROBOT_ACTIONS as _ROBOT_ACTIONS
+    from embodiplan.base import ROBOT_ACTIONS as _ROBOT_ACTIONS
     with st.expander("Valid actions", expanded=False):
         st.markdown(" · ".join(f"`{a}`" for a in _ROBOT_ACTIONS))
 
@@ -1682,7 +1682,7 @@ with col_cam:
 
     if cmd_submitted and cmd_text.strip():
         import re as _re
-        from pyplanner.base import ROBOT_ACTIONS
+        from embodiplan.base import ROBOT_ACTIONS
 
         # ── Object name resolver (uses module-level resolve_obj) ──
         def _resolve_obj(name: str) -> tuple[str, str | None]:
@@ -1791,7 +1791,7 @@ with col_cam:
 
     def _parse_cmd_text(text: str) -> tuple[list[dict], list[str]]:
         """Parse raw command text into steps + error list (shared by eval & refine)."""
-        from pyplanner.base import ROBOT_ACTIONS as _RA
+        from embodiplan.base import ROBOT_ACTIONS as _RA
         steps, errors = [], []
         for _raw in text.strip().splitlines():
             _line = _raw.strip()

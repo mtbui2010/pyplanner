@@ -1,7 +1,7 @@
 """
 make_dataset.py
 ===============
-Build a static evaluation dataset for pyplanner benchmarking.
+Build a static evaluation dataset for embodiplan benchmarking.
 
 Each sample contains:
   - task description + room context
@@ -28,7 +28,7 @@ import os
 from dataclasses import asdict, dataclass, field
 
 
-# ── Valid action vocabulary (must match pyplanner) ────────────────────
+# ── Valid action vocabulary (must match embodiplan) ────────────────────
 VALID_ACTIONS = {
     "MoveTo", "Find", "Pick", "Place", "PutIn",
     "Open", "Close", "TurnOn", "TurnOff",
@@ -931,7 +931,7 @@ def print_summary(samples: list[dict]):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build pyplanner evaluation dataset")
+    parser = argparse.ArgumentParser(description="Build embodiplan evaluation dataset")
     parser.add_argument("--out",     default="eval_dataset.json", help="Output JSON file")
     parser.add_argument("--summary", action="store_true",         help="Print summary only, no file write")
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-# pyplanner/my_planner.py
+# embodiplan/my_planner.py
 # Method — HierarchicalFewShot (custom)
 #
 # Combines Hierarchical planning with dynamic few-shot example retrieval:
@@ -28,11 +28,11 @@ import re
 import time
 from typing import NamedTuple
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, JSON_EXAMPLE, STEP_SCHEMA,
     BasePlanner, PlanMetrics, parse_steps,
 )
-from pyplanner.few_shot_examples import FEW_SHOT_EXAMPLES
+from embodiplan.few_shot_examples import FEW_SHOT_EXAMPLES
 
 
 # ══════════════════════════════════════════════════════════════════════

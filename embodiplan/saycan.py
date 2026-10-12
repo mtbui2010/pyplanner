@@ -1,4 +1,4 @@
-# pyplanner/saycan.py
+# embodiplan/saycan.py
 # ─────────────────────────────────────────────────────────────────────
 # SayCan-style planner (Ahn et al., 2022, "Do As I Can, Not As I Say").
 #
@@ -8,7 +8,7 @@
 #   2. Score each candidate by the classic SayCan product:
 #          score = p_LLM(candidate | task, history) * p_affordance(candidate)
 #      where p_affordance is the feasibility of the candidate in the CURRENT
-#      symbolic state.  We use pyplanner.verifier as the affordance oracle:
+#      symbolic state.  We use embodiplan.verifier as the affordance oracle:
 #      a candidate that would VIOLATE a precondition gets feasibility ~= 0,
 #      a feasible candidate gets feasibility ~= 1 (with a small floor so a
 #      strongly-preferred-but-borderline action is not hard-zeroed).
@@ -17,7 +17,7 @@
 #
 # Honest-SayCan notes:
 #   - The original SayCan uses a LEARNED value function for p_LLM and a
-#     LEARNED affordance model for p_affordance.  pyplanner has neither a
+#     LEARNED affordance model for p_affordance.  embodiplan has neither a
 #     trained value head nor a learned affordance net, so we instantiate the
 #     SAME value*affordance decomposition with (a) an LLM scoring call for the
 #     value term and (b) the rule verifier as a deterministic affordance
@@ -36,11 +36,11 @@ import json
 import re
 import time
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, STEP_SCHEMA,
     BasePlanner, PlanMetrics,
 )
-from pyplanner.verifier import (
+from embodiplan.verifier import (
     SymbolicState, verify_step, _apply, DEFAULT_CONTAINERS,
 )
 

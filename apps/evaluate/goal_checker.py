@@ -46,14 +46,14 @@ from typing import Callable
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 try:
-    import pyplanner
-    from pyplanner import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
-    from pyplanner.base import LLMBackend
+    import embodiplan
+    from embodiplan import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+    from embodiplan.base import LLMBackend
 except ImportError:
-    sys.path.insert(0, os.path.join(_HERE, "..", "pyplanner"))
-    import pyplanner
-    from pyplanner import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
-    from pyplanner.base import LLMBackend
+    sys.path.insert(0, os.path.join(_HERE, "..", "embodiplan"))
+    import embodiplan
+    from embodiplan import DEFAULT_HOST, DEFAULT_MODEL, DEFAULT_BACKEND
+    from embodiplan.base import LLMBackend
 
 
 # ═════════════════════════════════════════════════════════════════════

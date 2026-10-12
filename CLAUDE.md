@@ -1,14 +1,14 @@
-# pyplanner
+# embodiplan
 
 Pluggable LLM task planner for household robotics (AI2-THOR). Given a task description + visible objects, generates a step-by-step action plan.
 
 ## Usage
 
 ```python
-import pyplanner
+import embodiplan
 
 # Via registry (recommended)
-planner = pyplanner.get("ReAct", host="http://ollama.aistations.org", model="llama3.2")
+planner = embodiplan.get("ReAct", host="http://ollama.aistations.org", model="llama3.2")
 steps, metrics = planner.generate_plan(
     task="Make a cup of coffee using the coffee machine",
     obs="Kitchen scene loaded.",
@@ -16,7 +16,7 @@ steps, metrics = planner.generate_plan(
 )
 
 # Via shorthand
-planner = pyplanner.react(model="llama3.2", max_steps=15)
+planner = embodiplan.react(model="llama3.2", max_steps=15)
 ```
 
 ## Registry keys
@@ -47,7 +47,7 @@ Valid actions: `MoveTo Find Pick Place PutIn Open Close TurnOn TurnOff Wash Sit 
 
 Configured per-planner via constructor args:
 ```python
-planner = pyplanner.get("ReAct",
+planner = embodiplan.get("ReAct",
     host="http://ollama.aistations.org",   # Ollama URL
     model="llama3.2",
     provider="ollama",                      # "ollama" | "openai" | "gemini"
@@ -59,9 +59,9 @@ planner = pyplanner.get("ReAct",
 
 | File | What it does |
 |------|-------------|
-| `pyplanner/base.py` | `BasePlanner` ABC, `PlanMetrics`, `LLMBackend` (handles Ollama/OpenAI/Gemini) |
-| `pyplanner/__init__.py` | `REGISTRY`, `get()`, shorthand factories |
-| `pyplanner/react.py` | ReAct implementation (most used) |
-| `pyplanner/hierarchical.py` | Hierarchical planner |
+| `embodiplan/base.py` | `BasePlanner` ABC, `PlanMetrics`, `LLMBackend` (handles Ollama/OpenAI/Gemini) |
+| `embodiplan/__init__.py` | `REGISTRY`, `get()`, shorthand factories |
+| `embodiplan/react.py` | ReAct implementation (most used) |
+| `embodiplan/hierarchical.py` | Hierarchical planner |
 | `apps/thor_knowledge.py` | Task/scene definitions for demo apps |
 | `apps/app.py` | Standalone Streamlit demo |

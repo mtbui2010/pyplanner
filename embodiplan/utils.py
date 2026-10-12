@@ -1,6 +1,6 @@
 def evaluate_plan(plan: list[dict], task: str, obs: str, planner) -> str:
     """Ask the LLM to assess the plan: coverage of intent objects/locations + precondition correctness."""
-    from pyplanner.base import STEP_SCHEMA, ROBOT_ACTIONS
+    from embodiplan.base import STEP_SCHEMA, ROBOT_ACTIONS
     steps_str = "\n".join(
         f"  {i+1}. {s.get('action','')} {s.get('object','')}"
         for i, s in enumerate(plan)
@@ -36,7 +36,7 @@ def evaluate_plan(plan: list[dict], task: str, obs: str, planner) -> str:
 
 def refine_plan(plan: list[dict], task: str, obs: str, evaluation: str, planner) -> list[dict]:
     """Ask the LLM to produce an improved plan that covers all intent objects/locations."""
-    from pyplanner.base import STEP_SCHEMA, JSON_EXAMPLE, parse_steps
+    from embodiplan.base import STEP_SCHEMA, JSON_EXAMPLE, parse_steps
     steps_str = "\n".join(
         f"  {i+1}. {s.get('action','')} {s.get('object','')}"
         for i, s in enumerate(plan)

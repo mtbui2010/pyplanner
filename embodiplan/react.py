@@ -14,7 +14,7 @@
 import re
 import time
 
-from pyplanner.base import (
+from embodiplan.base import (
     ACTIONS_STR, BasePlanner, PlanMetrics, _approx_tokens,
 )
 

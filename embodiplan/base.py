@@ -1,6 +1,6 @@
-# pyplanner/base.py
+# embodiplan/base.py
 """
-Shared base class, data structures, and LLM backend abstraction for all PyPlanner methods.
+Shared base class, data structures, and LLM backend abstraction for all embodiplan methods.
 
 Supported backends:
   - "ollama"  : local Ollama server (default)
@@ -57,11 +57,13 @@ ROBOT_ACTIONS = [
 ]
 
 # Optional cross-domain actions (e.g. ALFWorld's heat/cool/clean), opt-in via the
-# PYPLANNER_EXTRA_ACTIONS env var so the DEFAULT vocabulary — and therefore every
+# EMBODIPLAN_EXTRA_ACTIONS env var so the DEFAULT vocabulary — and therefore every
 # existing AI2-THOR prompt and cached result — stays byte-identical. The verifier
 # imports ROBOT_ACTIONS, so it stays in sync automatically. Set the var BEFORE
-# importing pyplanner, e.g. PYPLANNER_EXTRA_ACTIONS="Heat,Cool,Clean".
-for _a in (x.strip() for x in os.environ.get("PYPLANNER_EXTRA_ACTIONS", "").split(",")):
+# importing embodiplan, e.g. EMBODIPLAN_EXTRA_ACTIONS="Heat,Cool,Clean".
+# PYPLANNER_EXTRA_ACTIONS is the pre-rename name, still honoured.
+_extra = os.environ.get("EMBODIPLAN_EXTRA_ACTIONS") or os.environ.get("PYPLANNER_EXTRA_ACTIONS", "")
+for _a in (x.strip() for x in _extra.split(",")):
     if _a and _a not in ROBOT_ACTIONS:
         ROBOT_ACTIONS.append(_a)
 
@@ -503,7 +505,7 @@ def parse_steps(raw: str) -> list[dict]:
 # ══════════════════════════════════════════════════════════════════════
 class BasePlanner(ABC):
     """
-    Abstract base for all PyPlanner methods.
+    Abstract base for all embodiplan methods.
 
     Accepts any supported backend (ollama / openai / anthropic) via LLMBackend.
     All subclasses use self._chat() — backend-agnostic.
